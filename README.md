@@ -44,20 +44,20 @@
 
 **<p align="center">Fonctionnalité du launcher.</p>**
 
-- Mise à jour automatique.
+- Mise à jour automatique
 
-- Maintenance launcher.
+- Maintenance launcher
 
-- Maintenance message custom.
+- Maintenance message custom
 
-- Statut serveur complet.
+- Statut serveur complet
 
-- Authentification mojang.
+- Authentification mojang
 
-- Authentification Microsoft.
+- Authentification Microsoft
 
-- Authentification crack.
+- Authentification crack
 
-- Accepte toutes versions de Minecraft 1.0 > 1.18.x (Forge, Fabric etc).
+- Accepte toutes versions de Minecraft 1.0 > 1.18.x (Forge, Fabric etc)
 
 
