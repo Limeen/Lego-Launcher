@@ -18,7 +18,7 @@
     "node": "16.x.x"
   },
   "chromium-args": "--enable-logging --v=1 --disable-gpu --mixed-content",
-  "url": "http://launcher.selvania.fr",
+  "url": "http://legoo.alwaysdata.net/",
   "user": "",
   "webkit": {
     "plugin": true

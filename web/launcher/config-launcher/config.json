@@ -2,13 +2,12 @@
   "maintenance": false,
   "maintenance_message": "Maintenance, Revenez plus tard",
   "online": false,
-  "offline": "on",
   "client_id": "",
   "game_version": "1.18.1",
   "custom": true,
-  "verify": false,
+  "verify": true,
   "java": true,
   "game_args": [],
   "dataDirectory": ".lego",
-  "ignored": [""]
+  "ignored": ["options.txt", "log"]
 }
