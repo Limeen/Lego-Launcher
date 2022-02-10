@@ -1,13 +1,13 @@
 {
   "maintenance": false,
-  "maintenance_message": "Le server est en maintenance.<br>Merci de bien vouloir essayer ultérieurement.",
-  "online": true,
+  "maintenance_message": "Maintenance, Revenez plus tard",
+  "online": false,
   "client_id": "",
-  "game_version": "1.0",
-  "custom": false,
+  "game_version": "1.18.1",
+  "custom": true,
   "verify": false,
   "java": true,
   "game_args": [],
-  "dataDirectory": ".minecraft",
-  "ignored": ["config.json"]
+  "dataDirectory": ".lego",
+  "ignored": [""]
 }
