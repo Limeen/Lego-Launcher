@@ -1,4 +1,4 @@
-<p align="center"><img src="./app/assets/images/icons/icon.png" width="65%" height="65%" alt="Uzurion"></p>
+<p align="center"><img src="./app/assets/images/icons/icon.png" width="40%" height="40%" alt="Uzurion"></p>
 
 <h1 align="center">Lego Launcher</h1>
 
