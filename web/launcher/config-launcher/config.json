@@ -9,5 +9,5 @@
   "java": true,
   "game_args": [],
   "dataDirectory": ".lego",
-  "ignored": ["options.txt", "log"]
+  "ignored": ["optionsof.txt", "options.txt", "logs", "saves", "resourcepacks", "shaderpacks"]
 }

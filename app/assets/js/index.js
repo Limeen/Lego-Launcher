@@ -49,7 +49,7 @@ async function maintenanceCheck(){
 }
 
 async function checkUpdate(){
-  setStatus(`Recherche de mises à jour`);
+  setStatus(`Recherche de mises à jour...`);
   const manifest = await fetch(manifestUrl).then(res => res.json());
   const update = await updater.checkNewVersion(manifest);
   if(!update) return startLauncher();
@@ -62,17 +62,17 @@ async function checkUpdate(){
   });
 
   toggleProgress();
-  setStatus(`Téléchargement de la mise à jour`);
+  setStatus(`Téléchargement de la mise à jour...`);
   const file = await updater.download(manifest);
-  setStatus(`Décompression de la mise à jour`);
+  setStatus(`Décompression de la mise à jour...`);
   await updater.unpack(file);
   toggleProgress();
-  setStatus(`Redémarrage`);
+  setStatus(`Redémarrage...`);
   await updater.restartToSwap();
 }
   
 function startLauncher(){
-  setStatus(`Démarrage du launcher`);
+  setStatus(`Démarrage du launcher...`);
   nw.Window.open("app/launcher.html", {
     "title": pkg.productName,
     "width": 1280,
@@ -87,8 +87,8 @@ function startLauncher(){
 }
 
 function shutdown(text){
-  setStatus(`${text}<br>Arrêt dans 5s`);
-  let i = 4;
+  setStatus(`${text}<br>Arrêt dans 10s`);
+  let i = 9;
   setInterval(() => {
     setStatus(`${text}<br>Arrêt dans ${i--}s`);
     if(i < 0) win.close();

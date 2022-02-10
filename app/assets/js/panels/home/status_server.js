@@ -5,13 +5,13 @@ config.info().then(async (config)  => {
     let StatusServer = (await status.StatusServer(config.ip_server, parseInt(config.port)));
     
     if(!StatusServer){
-        document.querySelector(".player-connect-number").innerHTML = "Le serveur est actuellement ferme.";
-        document.querySelector(".player-connect").innerHTML = "Le serveur est actuellement ferme.";
+        document.querySelector(".player-connect-number").innerHTML = "Serveur hors-ligne";
+        document.querySelector(".player-connect").innerHTML = "Serveur hors-ligne";
     } else {
         document.querySelector(".player-connect").innerHTML = ""
         if(StatusServer.players.online === 0){
-            document.querySelector(".player-connect-number").innerHTML = `Aucun joueur actuellement connecté`;
-            document.querySelector(".player-connect").innerHTML = `Aucun joueur actuellement connecté`;
+            document.querySelector(".player-connect-number").innerHTML = `Serveur en ligne`;
+            document.querySelector(".player-connect").innerHTML = `0/12`;
         } else if (StatusServer.players.online === 1){
             document.querySelector(".player-connect-number").innerHTML = `${StatusServer.players.online} joueur actuellement connecté`;
             head(StatusServer.players)      

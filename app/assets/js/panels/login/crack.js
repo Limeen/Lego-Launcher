@@ -4,8 +4,8 @@ const dataDirectory = process.env.APPDATA || (process.platform == 'darwin' ? pro
 document.querySelector(`.online`).style.display = "none"
 document.querySelector(`.microsoft-btn`).style.display = "none"
 document.querySelector(`.loginSpanDim`).style.display = "none"
-document.querySelector(`.uzurionAppLoginCardInformation`).innerHTML = "Le serveur Minecraft accepte les crack,<br>pour vous connecter il vous suffit de rentrer votre pseudo"
-document.querySelector(`.uzurionAppLoginCardLabel`).innerHTML = "nom d\'utilisateur"
+document.querySelector(`.uzurionAppLoginCardInformation`).innerHTML = "PTN mets ton nom fdp 😡😡"
+document.querySelector(`.uzurionAppLoginCardLabel`).innerHTML = "Nom d\'utilisateur"
 document.querySelector(".uzurionAppGenHeader").style.display = "block"
 
 document.querySelector(".login-btn").addEventListener("click", () => {
