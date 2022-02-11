@@ -1,12 +1,12 @@
 {
-  "name": "Lego Launcher",
-  "version": "0.1",
-  "productName": "Lego Launcher",
-  "description": "Lego Launcher",
+  "name": "Lego-Launcher",
+  "version": "2.0.5",
+  "productName": "Lego-Launcher",
+  "description": "Lego-Launcher",
   "main": "app/index.html",
   "author": "Limeen",
   "window": {
-    "title": "Lego Updater",
+    "title": "Lego-Updater",
     "width": 400,
     "height": 500,
     "frame": false,
@@ -33,7 +33,7 @@
   },
   "license": "CC0",
   "build": {
-    "appId": "Lego Launcher",
+    "appId": "Lego-Launcher",
     "nwVersion": "0.60.0",
     "packed": true,
     "targets": [
@@ -56,8 +56,8 @@
     ],
     "outputPattern": "${NAME}-${PLATFORM}",
     "win": {
-      "productName": "Lego Launcher",
-      "companyName": "Lego Launcher",
+      "productName": "Lego-Launcher",
+      "companyName": "Lego-Launcher",
       "copyright": "copyright",
       "icon": "./app/assets/images/icons/icon.ico"
     },
