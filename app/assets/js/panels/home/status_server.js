@@ -11,7 +11,7 @@ config.info().then(async (config)  => {
         document.querySelector(".player-connect").innerHTML = ""
         if(StatusServer.players.online === 0){
             document.querySelector(".player-connect-number").innerHTML = `Serveur en ligne`;
-            document.querySelector(".player-connect").innerHTML = `0/12`;
+            document.querySelector(".player-connect").innerHTML = `0/10`;
         } else if (StatusServer.players.online === 1){
             document.querySelector(".player-connect-number").innerHTML = `${StatusServer.players.online} joueur actuellement connecté`;
             head(StatusServer.players)      
