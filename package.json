@@ -1,12 +1,12 @@
 {
-  "name": "Lego-Launcher",
-  "version": "2.0.5",
-  "productName": "Lego-Launcher",
-  "description": "Lego-Launcher",
+  "name": "Lego Launcher",
+  "version": "0.1",
+  "productName": "Lego Launcher",
+  "description": "Jouez aux legos!",
   "main": "app/index.html",
   "author": "Limeen",
   "window": {
-    "title": "Lego-Updater",
+    "title": "Lego Updater",
     "width": 400,
     "height": 500,
     "frame": false,
@@ -56,13 +56,13 @@
     ],
     "outputPattern": "${NAME}-${PLATFORM}",
     "win": {
-      "productName": "Lego-Launcher",
-      "companyName": "Lego-Launcher",
+      "productName": "Lego Launcher",
+      "companyName": "Lego Launcher",
       "copyright": "copyright",
       "icon": "./app/assets/images/icons/icon.ico"
     },
     "mac": {
-      "displayName": "Lego-Launcher",
+      "displayName": "Lego Launcher",
       "copyright": "copyright",
       "plistStrings": {
         "CFBundleIdentifier": "Lego-Launcher"
