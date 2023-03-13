@@ -1,6 +1,6 @@
 
 
-<h1 align="center">CraftLaunch</h1>
+<h1 align="center">Lego Launcher</h1>
 
 #### [<p align="center">]() *(Un launcher minecraft performant et puissant basé sur electron)*
 [<p align="center">]()
