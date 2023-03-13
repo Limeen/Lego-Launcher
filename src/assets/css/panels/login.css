@@ -18,7 +18,7 @@
 }
 
 .login-type-btn {
-    border-radius: 15px;
+    border-radius: 6px;
     border: none;
     margin: 2% 0;
     height: 2em;
@@ -27,11 +27,13 @@
     color: #121212;
     font: normal normal bold 19px/29px Poppins;
     cursor: pointer;
+    transition-duration: 0.4s;
 }
 
 .login-type-btn:hover {
-    background-color: #006e47;
-    box-shadow: 0 0 5px #006e47;
+    background-color: #2bf9b0;
+    box-shadow: 0 0 5px #2bf9b0;
+    transition-duration: 0.4s;
 }
 
 .login-type-btn:disabled {
@@ -90,7 +92,7 @@
 }
 
 .login-btn {
-    border-radius: 15px;
+    border-radius: 6px;
     border: none;
     margin: 2% 0;
     height: 2em;
@@ -99,11 +101,13 @@
     color: #121212;
     font: normal normal bold 19px/29px Poppins;
     cursor: pointer;
+    transition-duration: 0.4s;
 }
 
 .login-btn:hover {
-    background-color: #006e47;
-    box-shadow: 0 0 5px #006e47;
+    background-color: #2bf9b0;
+    box-shadow: 0 0 5px #2bf9b0;
+    transition-duration: 0.4s;
 }
 
 .cancel {

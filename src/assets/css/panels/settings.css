@@ -11,7 +11,7 @@
 }
 
 .tab-btn-css {
-    border-radius: 23px;
+    border-radius: 6px;
     width: 160px;
     height: 37px;
     margin: auto 30px;
@@ -25,20 +25,20 @@
 
 .tab-btn-css:hover {
     background: #006e47;
-    box-shadow: 0 0 5px #006e47;
     border: 4px solid #006e47;
+    box-shadow: 0 0 5px #006e47;
 }
 
 .active-tab-btn {
-    background: #006e47;
-    border: 4px solid #bd5d26;
-    box-shadow: 0 0 5px #bd5d26;
+    background: #2bf9b0;
+    border: 4px solid #2bf9b0;
+    box-shadow: 0 0 5px #2bf9b0;
 }
 
 .active-tab-btn:hover {
-    background: #006e47;
-    border: 4px solid #bd5d26;
-    box-shadow: 0 0 5px #bd5d26;
+    background: #2bf9b0;
+    border: 4px solid #2bf9b0;
+    box-shadow: 0 0 5px #2bf9b0;
 }
 
 .tabs-settings-content {
