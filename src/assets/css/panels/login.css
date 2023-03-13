@@ -4,11 +4,11 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 35%;
-    background: #121212;
+    background: #272727;
     padding: 20px;
     font: normal normal bold 19px/29px Poppins;
     color: #E1E1E1;
-    border-radius: 15px;
+    border-radius: 8px;
     text-align: center;
 }
 
@@ -51,11 +51,11 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 35%;
-    background: #121212;
+    background: #272727;
     padding: 0 20px;
     font: normal normal bold 19px/29px Poppins;
     color: #E1E1E1;
-    border-radius: 15px;
+    border-radius: 8px;
     display: none;
 }
 

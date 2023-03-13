@@ -1,9 +1,9 @@
 <div class="login-content">
     <div class="login-card">
-        <p>Utilisez votre compte <span class="store">Minecraft</span> pour vous connectez au launcher.</p>
+        <p>Bienvenue!<br/>Vous allez maintenant devoir choisir un nom d'utilisateur qui sera visible en jeu.</p>
         <div class="login-type">
-            <button class="mojang login-type-btn">Mojang</button>
-            <button class="microsoft login-type-btn">Microsoft</button>
+            <button class="mojang login-type-btn">Continuer</button>
+            <button class="microsoft login-type-btn" style="display: none;">Microsoft</button>
         </div>
         <button class="cancel cancel-login" style="display: none;">Annuler</button>
     </div>
@@ -13,19 +13,19 @@
             <small class="info-login">&nbsp;</small>
 
             <div class="login-card-mojang-input">
-                <label>Adresse mail</label>
+                <label style="margin-bottom: 8px;">Nom d'utilisateur</label>
                 <input type="text" class="Mail login-mojang-input" spellcheck="false">
                 <small class="error-mail">&nbsp;</small>
             </div>
 
-            <div class="login-card-mojang-input">
+            <div class="login-card-mojang-input" style="display: none;">
                 <label>Mot de passe</label>
                 <input type="password" class="Password login-mojang-input" spellcheck="false">
                 <small class="error-password">&nbsp;</small>
             </div>
 
             <div class="login-options">
-                <span class="password-reset">Mot de passe oublié ?</span>
+                <span class="password-reset" style="display: none;">Mot de passe oublié ?</span>
                 <div class="btn-option-login">
                     <button class="login-btn">Connexion</button>
                     <button class="cancel cancel-mojang">Annuler</button>
