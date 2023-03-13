@@ -1,7 +1,7 @@
 {
     "name": "Lego-Launcher",
     "preductname": "Lego Launcher",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "description": "Launcher Mincraft",
     "main": "src/app.js",
     "author": "none",
