@@ -49,7 +49,7 @@ class Splash {
         ipcRenderer.invoke('update-app').then(err => {
             if (err.error) {
                 let error = err.message;
-                this.shutdown(`Erreur lors de la recherche de mise à jour.<br>${error}`);
+                this.shutdown(`Erreur durant la recherche de mise à jour.<br>${error}`);
             }
         })
 
@@ -74,7 +74,7 @@ class Splash {
             this.startLauncher();
         }).catch(e => {
             console.error(e);
-            return this.shutdown("Aucune connexion internet détectée,<br>veuillez réessayer ultérieurement.");
+            return this.shutdown("Problème réseau détecté.<br>Contactez Limeen#8065.");
         })
     }
 
