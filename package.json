@@ -1,11 +1,12 @@
 {
-    "name": "Selvania-Launcher",
-    "preductname": "Selvania Launcher",
-    "version": "1.2.2",
-    "description": "Launcher Mincraft custom (crack, premium)",
+    "name": "Lego-Launcher",
+    "preductname": "Lego Launcher",
+    "version": "0.0.0",
+    "description": "Launcher Mincraft",
     "main": "src/app.js",
-    "author": "Luuxis",
-    "url": "http://craftdium.ml/launcherSelvania",
+    "author": "none",
+    "url": "http://legominecraft.ddns.net:9001",
+    "url-origin": "http://craftdium.ml/launcherSelvania",
     "engines": {
         "node": "^18.x.x"
     },
