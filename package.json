@@ -1,8 +1,8 @@
 {
     "name": "venstone-launcher",
     "preductname": "Venstone Launcher",
-    "version": "0.0.14",
-    "description": "Launcher officiel pour le serveur Venstone",
+    "version": "0.0.15",
+    "description": "https://venstone.xyz",
     "main": "src/app.js",
     "author": "Luuxis, Limeen",
     "url": "https://launcher-data.alwaysdata.net/launcher-data/",

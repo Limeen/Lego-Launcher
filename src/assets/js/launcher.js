@@ -115,7 +115,7 @@ class Launcher {
                     if (account.uuid === selectaccount) accountSelect(refresh.uuid)
                 } else if (account.meta.type === 'Mojang') {
                     if (!account.meta.online) {
-                    console.log(`Initialisation du compte ${account.name} (Sans connexion Microsoft) ...`);
+                    console.log(`✅ Compte ${account.name} prêt à l'utilisation`); // Message de connexion au compte offline
                         addAccount(account);
                         if (account.uuid === selectaccount) accountSelect(account.uuid)
                         continue;
