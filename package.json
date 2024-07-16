@@ -1,11 +1,11 @@
 {
     "name": "venstone-launcher",
     "preductname": "Venstone Launcher",
-    "version": "0.0.15",
+    "version": "0.0.16",
     "description": "https://venstone.xyz",
     "main": "src/app.js",
     "author": "Luuxis, Limeen",
-    "url": "https://launcher-data.alwaysdata.net/launcher-data/",
+    "url": "https://venstone.xyz/launcher-data/legacy/1-21",
     "engines": {
         "node": "^18.x.x"
     },
