@@ -224,7 +224,7 @@ class Home {
             changePanel('settings');
         });
         document.querySelector('.player-head').addEventListener('click', () => {
-            changePanel('settings');
+            window.open("https://venstone.xyz/skins/changeskin/", '_blank').focus();
         });
     }
 
