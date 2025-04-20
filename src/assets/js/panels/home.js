@@ -111,7 +111,7 @@ class Home {
             let opts = {
                 url: this.config.game_url === "" || this.config.game_url === undefined ? `${urlpkg}/files` : this.config.game_url,
                 authenticator: account,
-                timeout: 10000,
+                timeout: 30000,
                 //before: path: `${dataDirectory}/${process.platform == 'darwin' ? this.config.dataDirectory : `.${this.config.dataDirectory}`}`,
                 // .venstone/1.20.1/
                 path: `${dataDirectory}/${process.platform == 'darwin' ? this.config.dataDirectory : `.${this.config.dataDirectory}/${this.config.game_version}`}`,
@@ -195,6 +195,7 @@ class Home {
             });
 
             launch.on('error', err => {
+                //playBtn.style.display = "block"
                 console.log(err);
             });
         })
