@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="create-instance.css">
+    <title>Créer une nouvelle instance</title>
+</head>
+<body>
+    <div class="formbox">
+        <h1>Créer une nouvelle instance customisé</h1>
+        <form action="/submit-config" method="POST">
+
+            <label for="instance_name">Nom de l'instance :</label>
+            <input type="text" id="instance_name" name="instance_name" required>
+            <br>
+
+            <label for="loadder_type">Type de loader :</label>
+            <select id="loadder_type" name="loadder_type">
+            <option value="fabric">Fabric</option>
+            <option value="forge">Forge</option>
+            </select>
+            <br>
+
+            <label for="minecraft_version">Version Minecraft :</label>
+            <select id="minecraft_version" name="minecraft_version">
+            <option value="latest_release">Dernière version</option>
+            <option value="1.21.8">1.21.8</option>
+            <option value="1.21.7">1.21.7</option>
+            <option value="1.21.6">1.21.6</option>
+            <option value="1.21.5">1.21.5</option>
+            <option value="1.21.4">1.21.4</option>
+            <option value="1.21.3">1.21.3</option>
+            <option value="1.21.2">1.21.2</option>
+            <option value="1.21.1">1.21.1</option>
+            <option value="1.21.1">1.21</option>
+
+            <option value="1.20.4">1.20.4</option>
+            <option value="1.20.3">1.20.3</option>
+            <option value="1.20.2">1.20.2</option>
+            <option value="1.20.1">1.20.1</option>
+            <option value="1.20.1">1.20</option>
+
+            <option value="1.19.4">1.19.4</option>
+            <option value="1.19.3">1.19.3</option>
+            <option value="1.19.2">1.19.2</option>
+            <option value="1.19.1">1.19.1</option>
+            <option value="1.19.1">1.19</option>
+
+            <!-- Ajoutez d'autres versions si nécessaire -->
+            </select>
+            <br>
+
+            <label for="loadder_version">Version du loader :</label>
+            <input type="text" id="loadder_version" name="loadder_version" value="Dernière version" required disabled>
+            <br><br>
+
+            <button type="submit" disabled>Créer l'instance</button>
+        </form>
+    </div>
+
+    <div class="warnbox">
+        <p>Cette fonctionnalité est en cours de développement.</p>
+    </div>
+</body>
+</html>

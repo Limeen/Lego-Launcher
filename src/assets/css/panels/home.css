@@ -356,7 +356,6 @@
     background: url('../../images/default/steve.png'), no-repeat;
     background-size: cover;
     image-rendering: pixelated;
-    transition: var(--transition);
     height: 3rem;
     width: 3rem;
     pointer-events: none;
@@ -364,7 +363,7 @@
     z-index: 9;
 }
 
-.player-head:hover {
+.player-options:hover {
     cursor: pointer;
 }
 
@@ -411,7 +410,7 @@ display: flex;
 .instance-select {
     display: flex;
 
-    background-color: #272727;
+    background-color: #439afd;
     border: solid 1px #5aa0ff;
     border-radius: 13px;
     font-family: Poppins;
@@ -420,8 +419,9 @@ display: flex;
 }
 
 .instance-select:hover {
-    background-color: #0087f5;
-    border: solid 1px #2e6dc5;
+    background-color: #ffffff;
+    border: solid 1px #e9e9e9;
+    color: rgb(17, 17, 17);
     cursor: pointer;
     transition-duration: 0.4s;
 }
@@ -430,6 +430,73 @@ display: flex;
     transform: rotate(270deg);
     pointer-events: none;
 }
+
+.instance-title-text {
+    font-weight: lighter;
+    font-size: 15px;
+}
+
+.instances-type-box {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    max-height: 450px;
+    overflow-y: scroll hidden;
+}
+
+.instance-type {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    background-color: #252525;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+.instance-type-text {
+    font-weight: lighter;
+    font-size: 20px !important;
+    margin-top: 10px !important;
+}
+
+.instances-List {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.custom-instances-List {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.create-custom-instance {
+    width: 200px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background: none;
+    color: rgb(230, 230, 230);
+    background-color: #32a776;
+    border: solid 1px #14a555;
+    border-radius: 13px;
+    /* padding: 0.4rem 4rem; */
+    font-family: Poppins;
+    font-size: 18px;
+    margin: 5px;
+    transition-duration: 0.4s;
+}
+
+.create-custom-instance:hover {
+    transition-duration: 0.4s;
+    background-color: #1e6346;
+    border: solid 1px #108645;
+    cursor: pointer;
+}
+
+
 
 .info-starting-game {
     display: none;
@@ -508,8 +575,9 @@ display: flex;
 }
 
 .instance-elements {
-    padding-top: 10px;
-    padding-bottom: 10px;
+    width: 200px;
+    padding-top: 5px;
+    padding-bottom: 5px;
     padding-left: 20px;
     padding-right: 20px;
     background: none;
