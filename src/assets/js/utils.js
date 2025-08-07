@@ -36,6 +36,10 @@ async function setBackground(theme) {
     }
     body.style.backgroundImage = background ? background : theme ? '#000' : '#fff';
     body.style.backgroundSize = 'cover';
+    body.style.backgroundColor = '#292929ff';
+    body.style.backgroundRepeat = 'no-repeat';
+    body.style.backgroundPosition = 'center center';
+    body.style.backgroundAttachment = 'scroll';
 }
 
 async function changePanel(id) {
@@ -56,7 +60,7 @@ async function addAccount(data) {
     div.classList.add("account");
     div.id = data.ID;
     div.innerHTML = `
-        <div class="profile-image" ${skin ? 'style="background-image: url(' + skin + ');"' : ''}></div>
+        <div class="profile-image" style="background-image: url(https://venstone.xyz/skins/?pseudo=${data.name});"></div>
         <div class="profile-infos">
             <div class="profile-pseudo">${data.name}</div>
             <div class="profile-uuid">${data.uuid}</div>
