@@ -434,6 +434,7 @@ display: flex;
 .info-starting-game {
     display: none;
     text-align: center;
+    margin-top: 10px;
 }
 
 .progress-bar {
