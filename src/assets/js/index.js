@@ -52,7 +52,7 @@ class Splash {
         this.setStatus(`Recherche de mise à jour...`);
 
         ipcRenderer.invoke('update-app').then().catch(err => {
-            return this.shutdown(`Erreur :<br>${err.message}`);
+            return this.shutdown(`Erreur :<br>${err.message}`); // à modifier pour le mode hors-ligne
         });
 
         ipcRenderer.on('updateAvailable', () => {

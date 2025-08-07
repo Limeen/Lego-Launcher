@@ -3,98 +3,115 @@
  * Luuxis License v1.0 (voir fichier LICENSE pour les détails en FR/EN)
  */
 
+const fs = require('fs');
+const path = require('path');
 const pkg = require('../package.json');
 const nodeFetch = require("node-fetch");
 const convert = require('xml-js');
-let url = pkg.user ? `${pkg.url}/${pkg.user}` : pkg.url
 
-let config = `${url}/launcher/config-launcher/config.json`;
-let news = `${url}/launcher/news-launcher/news.json`;
+let url = pkg.user ? `${pkg.url}/${pkg.user}` : pkg.url;
+let configUrl = `${url}/launcher/config-launcher/config.json`;
+let newsUrl = `${url}/launcher/news-launcher/news.json`;
 
 class Config {
-    GetConfig() {
-        return new Promise((resolve, reject) => {
-            nodeFetch(config).then(async config => {
-                if (config.status === 200) return resolve(config.json());
-                else return reject({ error: { code: config.statusText, message: 'server not accessible' } });
-            }).catch(error => {
-                return reject({ error });
-            })
-        })
+    async GetConfig() {
+        try {
+            const res = await nodeFetch(configUrl);
+            if (res.status === 200) return await res.json();
+            console.warn(`Server returned status ${res.status} for config.json`);
+            throw new Error('Server not accessible');
+        } catch (error) {
+            console.warn('Falling back to offline config.json');
+            try {
+                const filePath = path.join(__dirname, '../offline_mode/config.json');
+                const rawData = fs.readFileSync(filePath, 'utf-8');
+                return JSON.parse(rawData);
+            } catch (err) {
+                console.error('Failed to load offline config.json:', err);
+                throw { error: { message: 'Unable to load config.json online or offline', details: err } };
+            }
+        }
     }
 
     async getInstanceList() {
-    const urlInstance = `${url}/files`;
-    let instancesList = [];
+        const urlInstance = `${url}/files`;
+        let instancesList = [];
 
-    try {
-        const res = await nodeFetch(urlInstance);
-
-        // Optional: check for correct content type
-        const contentType = res.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) {
-            throw new Error("Invalid content-type: " + contentType);
-        }
-
-        let instances = await res.json();
-
-        // Ensure we only proceed if it's an object
-        if (typeof instances !== 'object' || instances === null) {
-            throw new Error("Invalid JSON structure");
-        }
-
-        for (let [name, data] of Object.entries(instances)) {
-            if (typeof data !== 'object' || data === null) {
-                console.warn(`Skipping invalid or null instance: ${name}`);
-                continue;
+        try {
+            const res = await nodeFetch(urlInstance);
+            const contentType = res.headers.get("content-type") || "";
+            if (!contentType.includes("application/json")) {
+                throw new Error("Invalid content-type: " + contentType);
             }
 
-            let instance = { ...data, name };
-            instancesList.push(instance);
+            let instances = await res.json();
+            if (typeof instances !== 'object' || instances === null) {
+                throw new Error("Invalid JSON structure");
+            }
+
+            for (let [name, data] of Object.entries(instances)) {
+                if (typeof data !== 'object' || data === null) {
+                    console.warn(`Skipping invalid or null instance: ${name}`);
+                    continue;
+                }
+                let instance = { ...data, name };
+                instancesList.push(instance);
+            }
+
+        } catch (err) {
+            console.error("Error fetching instance list:", err);
         }
 
-    } catch (err) {
-        console.error("Error fetching instance list:", err);
+        return instancesList;
     }
 
-    return instancesList;
-}
-
-
     async getNews() {
-        let config = await this.GetConfig() || {}
+        try {
+            let config = await this.GetConfig() || {};
 
-        if (config.rss) {
-            return new Promise((resolve, reject) => {
-                nodeFetch(config.rss).then(async config => {
-                    if (config.status === 200) {
-                        let news = [];
-                        let response = await config.text()
-                        response = (JSON.parse(convert.xml2json(response, { compact: true })))?.rss?.channel?.item;
+            // Use RSS feed if specified
+            if (config.rss) {
+                try {
+                    const res = await nodeFetch(config.rss);
+                    if (res.status !== 200) throw new Error("RSS server not accessible");
 
-                        if (!Array.isArray(response)) response = [response];
-                        for (let item of response) {
-                            news.push({
-                                title: item.title._text,
-                                content: item['content:encoded']._text,
-                                author: item['dc:creator']._text,
-                                publish_date: item.pubDate._text
-                            })
-                        }
-                        return resolve(news);
-                    }
-                    else return reject({ error: { code: config.statusText, message: 'server not accessible' } });
-                }).catch(error => reject({ error }))
-            })
-        } else {
-            return new Promise((resolve, reject) => {
-                nodeFetch(news).then(async config => {
-                    if (config.status === 200) return resolve(config.json());
-                    else return reject({ error: { code: config.statusText, message: 'server not accessible' } });
-                }).catch(error => {
-                    return reject({ error });
-                })
-            })
+                    let responseText = await res.text();
+                    let parsed = JSON.parse(convert.xml2json(responseText, { compact: true }));
+                    let items = parsed?.rss?.channel?.item;
+
+                    if (!items) throw new Error("Invalid RSS structure");
+
+                    if (!Array.isArray(items)) items = [items];
+
+                    return items.map(item => ({
+                        title: item.title._text,
+                        content: item['content:encoded']._text,
+                        author: item['dc:creator']._text,
+                        publish_date: item.pubDate._text
+                    }));
+                } catch (err) {
+                    console.warn('Failed to load RSS feed, trying fallback news.json...');
+                }
+            }
+
+            // If no RSS or it fails, fallback to news.json
+            const res = await nodeFetch(newsUrl);
+            if (res.status === 200) {
+                return await res.json();
+            } else {
+                throw new Error('Server not accessible');
+            }
+
+        } catch (error) {
+            console.warn('Falling back to offline news.json');
+            try {
+                const filePath = path.join(__dirname, '../offline_mode/news.json');
+                const rawData = fs.readFileSync(filePath, 'utf-8');
+                return JSON.parse(rawData);
+            } catch (err) {
+                console.error('Failed to load offline news.json:', err);
+                throw { error: { message: 'Unable to load news.json online or offline', details: err } };
+            }
         }
     }
 }
