@@ -9,5 +9,6 @@ data
 AppData
 README.md
 /docs
-/docs
-/docs
+.github/FUNDING.yml
+.github/ISSUE_TEMPLATE/bug_report.yml
+.github/ISSUE_TEMPLATE/config.yml
