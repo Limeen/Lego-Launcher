@@ -9,48 +9,14 @@
     display: flex;
 }
 
-.player-head {
-    margin: auto 30px;
-    background-image: url("../../images/default/steve.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-color: transparent;
-    width: 50px;
-    height: 50px;
-    border: none;
-    border-radius: 15px;
-    transition: all 0.5s cubic-bezier(1, 0.46, 0, 1.29);
-}
-
-.player-head:hover {
-    border-radius: 5px;
-    transition: all 0.5s cubic-bezier(1, 0.46, 0, 1.29);
-    cursor: pointer;
-}
-
 .player-username {
-    margin: auto -16px;
+    margin: auto -20px;
     color: #ffffff;
-    font: normal normal 19px/29px Poppins;
+    font: normal normal 19px / 29px Poppins;
     float: left;
-    margin-top: 23px;
-}
-
-.settings-btn {
-    position: absolute;
-    top: 10px;
-    right: 30px;
-    text-align: center;
-    height: 50px;
-    border: none;
-    border-radius: 15px;
-    transition: all 0.5s cubic-bezier(1, 0.46, 0, 1.29);
-}
-
-.settings-btn:hover {
-    border-radius: 5px;
-    transition: all 0.5s cubic-bezier(1, 0.46, 0, 1.29);
+    margin-top: 5px;
+    position: fixed;
+    left: 108px;
 }
 
 .icon-settings:before {
@@ -67,60 +33,11 @@
     text-align: center;
 }
 
-.play-btn {
-    top: 10px;
-    width: 160px;
-    height: 43px;
-    border-radius: 8px;
-    border: none;
-    background: #2379ee;
-    font: normal normal bold 20px/25px Poppins;
-    color: #e4e4e4;
-    margin: 15px 0;
-    transition-duration: 0.4s;
-    cursor: pointer;
-}
-
-.play-btn:hover {
-    background-color: #0d51ad;
-    transition-duration: 0.4s;
-}
-
-.download-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.text-download,
-.progress-bar {
-    display: none;
-}
-
-.text-download {
-    font-size: 15px;
-}
-
-.progress-bar {
-    background-color: transparent;
-    height: 10px;
-}
-
-.progress-bar::-webkit-progress-bar {
-    background-color: #797979;
-    border-radius: 10px;
-}
-
-.progress-bar::-webkit-progress-value {
-    background-color: #2379ee;
-    border-radius: 10px;
-}
 
 .body-home {
     display: flex;
-    height: 78vh;
-    margin: 3rem 2rem;
+    height: 65vh;
+    margin: 3.66rem 2rem;
 }
 
 .news-list {
@@ -137,6 +54,8 @@
     margin-bottom: 1rem;
     transition: opacity 1s;
     opacity: 1;
+    border: solid 1px #3b3b3b;
+    border-radius: 12px;
 }
 
 .news-block:hover {
@@ -214,11 +133,15 @@
     background-color: #1f1f1f;
     font-family: Poppins;
     font-size: 13px !important;
+    font-weight: lighter;
     color: #E1E1E1;
     text-decoration: none;
     border-radius: 0px 0px 10px 10px;
     transition: color .2s;
+    padding-bottom: 25px;
 }
+
+
 
 .news-author {
     text-align: end;
@@ -235,6 +158,10 @@
     width: 65vh;
     padding-left: 1rem;
     background: none;
+}
+
+.info-item > div, .box {
+    border: solid 1px #3b3b3b;
 }
 
 .server {
@@ -264,6 +191,25 @@
     margin-top: 1px;
 }
 
+.server-status-name {
+    position: absolute;
+    font: normal normal bold 17px/25px Poppins;
+    color: #E1E1E1;
+    top: 17px;
+    left: 70px;
+    transition: color .2s;
+}
+
+.server-status-text {
+    position: absolute;
+    font: normal normal normal 11px/17px Poppins;
+    color: #E1E1E1;
+    transition: all .2s;
+    top: 40px;
+    left: 70px;
+    transition: color .2s;
+}
+
 .name {
     position: absolute;
     font: normal normal bold 17px/25px Poppins;
@@ -291,7 +237,11 @@
     color: #FF0409;
 }
 
-.etat-text {
+.orange {
+    color: #f8bd19;
+}
+
+.status-player-count {
     position: absolute;
     top: 20px;
     right: 14px;
@@ -300,6 +250,18 @@
     background-color: #262626;
     border-radius: 4px;
     transition: background-color .2s;
+}
+
+.player-count {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font: normal normal bold 13px/15px Poppins;
+    letter-spacing: 0px;
+    color: #E1E1E1;
+    transition: color .2s;
+    font-size: 18px;
 }
 
 .text {
@@ -327,10 +289,6 @@
 
 .online.off {
     background-color: #FF0409;
-}
-
-.settings-btn.icon-settings {
-    cursor: pointer;
 }
 
 .box {
@@ -367,4 +325,220 @@
 .venstone-logo-home:hover {
     filter: drop-shadow(0 0 2rem #c3cbd1);
     transition-duration: 0.5s;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * sidebar                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+
+.sidebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 99.84%;
+    height: 74px;
+    background: #1f1f1f;
+    border: solid 1px #3b3b3b;
+}
+
+.player-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 15px;
+    height: 3rem;
+    margin: 0 1.5rem;
+}
+
+.player-head {
+    background: url('../../images/default/steve.png'), no-repeat;
+    background-size: cover;
+    image-rendering: pixelated;
+    transition: var(--transition);
+    height: 3rem;
+    width: 3rem;
+    pointer-events: none;
+    border-radius: 15px;
+    z-index: 9;
+}
+
+.player-head:hover {
+    cursor: pointer;
+}
+
+.player-menu {
+    color: var(--element-color);
+    transform: rotate(270deg);
+    pointer-events: none;
+}
+
+.play-elements {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.play-instance {
+display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    height: 3.2rem;
+    background-color: #2379ee;
+    border: solid 1px #5aa0ff;
+    border-radius: 13px;
+    font-family: Poppins;
+    transition-duration: 0.4s;
+    padding-right: 10px;
+    padding-left: 20px;
+    gap: 15px;
+}
+
+.play-instance:hover {
+    background-color: #0d51ad;
+    border: solid 1px #2e6dc5;
+    cursor: pointer;
+    transition-duration: 0.4s;
+}
+
+.play-instance-text {
+    display: flex;
+    font-size: 20px;
+}
+
+.instance-select {
+    display: flex;
+
+    background-color: #272727;
+    border: solid 1px #5aa0ff;
+    border-radius: 13px;
+    font-family: Poppins;
+    transition-duration: 0.4s;
+    padding: 7px;
+}
+
+.instance-select:hover {
+    background-color: #0087f5;
+    border: solid 1px #2e6dc5;
+    cursor: pointer;
+    transition-duration: 0.4s;
+}
+
+.instance-select:before {
+    transform: rotate(270deg);
+    pointer-events: none;
+}
+
+.info-starting-game {
+    display: none;
+    text-align: center;
+}
+
+.progress-bar {
+    appearance: none;
+    height: 10px;
+    margin: 0.5rem 0;
+}
+
+.progress-bar::-webkit-progress-bar {
+    background-color: #00000000;
+    border: solid 1px var(--element-color);
+    border-radius: 10px;
+}
+
+.progress-bar::-webkit-progress-value {
+    background-color: #2379ee;
+    border-radius: 10px;
+}
+
+.settings-btn {
+    width: 2.2rem;
+    height: 2.3rem;
+    font-size: 3rem;
+    color: white;
+    margin: 0 1.5rem;
+}
+
+.settings-btn:hover {
+    cursor: pointer;
+}
+
+.instance-popup {
+    position: absolute;
+    display: none;
+    width: 100%;
+    height: 99.8%;
+    background: #000000b3;
+    z-index: 10;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    top: 1px;
+}
+
+.instances-tab {
+    position: relative;
+    background: var(--background);
+    border-radius: 10px;
+    padding: 1rem 5rem;
+}
+
+.close-popup {
+    position: absolute;
+    display: flex;
+    top: 10px;
+    right: 10px;
+    background: var(--shadow);
+    height: 30px;
+    width: 30px;
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.instances-tab p {
+    font-size: 1.5rem;
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+.instance-elements {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background: none;
+    color: rgb(255, 255, 255);
+    background-color: #474747;
+    border: solid 1px #6e6e6e;
+    border-radius: 13px;
+    /* padding: 0.4rem 4rem; */
+    font-family: Poppins;
+    font-size: 18px;
+    margin: 5px;
+    transition-duration: 0.4s;
+}
+
+.instance-elements:hover {
+    color: rgb(19, 19, 19);
+    background-color: #ffffff;
+    border: solid 1px #dfdfdf;
+    cursor: pointer;
+}
+
+.active-instance {
+    background-color: #2379ee;
+    border: solid 1px #5aa0ff;
+    color: white;
+}
+
+.active-instance:hover {
+    background-color: #2379ee;
+    border: solid 1px #5aa0ff;
+    color: white;
+    cursor: pointer;
 }

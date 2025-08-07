@@ -4,4 +4,10 @@ app
 test
 dist
 node-v*
+data
+.DS_Store
 AppData
+README.md
+/docs
+/docs
+/docs
