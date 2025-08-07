@@ -1,7 +1,7 @@
 {
     "name": "venstone-launcher",
     "preductname": "Venstone Launcher",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "https://venstone.xyz",
     "main": "src/app.js",
     "author": "Luuxis, Limeen",
