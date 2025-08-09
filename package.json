@@ -1,11 +1,11 @@
 {
     "name": "venstone-launcher",
     "preductname": "Venstone Launcher",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "description": "https://venstone.xyz",
     "main": "src/app.js",
     "author": "Luuxis, Limeen",
-    "url": "https://venstone.xyz/launcher-data/new/",
+    "url": "https://venstone.xyz/launcher-data/stable/",
     "scripts": {
         "start": "cross-env-shell NODE_ENV=dev electron .",
         "dev": "cross-env-shell DEV_TOOL=open nodemon --exec npm start",

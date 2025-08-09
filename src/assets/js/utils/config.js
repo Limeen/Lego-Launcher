@@ -23,7 +23,7 @@ class Config {
         } catch (error) {
             console.warn('Falling back to offline config.json');
             try {
-                const filePath = path.join(__dirname, '../offline_mode/config.json');
+                const filePath = path.join(__dirname, '../offline_mode/launcher/config-launcher/config.json');
                 const rawData = fs.readFileSync(filePath, 'utf-8');
                 return JSON.parse(rawData);
             } catch (err) {
@@ -59,7 +59,24 @@ class Config {
             }
 
         } catch (err) {
-            console.error("Error fetching instance list:", err);
+            console.warn('Falling back to offline instance list');
+            try {
+                const filePath = path.join(__dirname, '../offline_mode/files/offline_instance_list.json');
+                const rawData = fs.readFileSync(filePath, 'utf-8');
+                const offlineInstances = JSON.parse(rawData);
+
+                for (let [name, data] of Object.entries(offlineInstances)) {
+                    if (typeof data !== 'object' || data === null) {
+                        console.warn(`Skipping invalid or null offline instance: ${name}`);
+                        continue;
+                    }
+                    let instance = { ...data, name };
+                    instancesList.push(instance);
+                }
+
+            } catch (errOffline) {
+                console.error('Failed to load offline instance list:', errOffline);
+            }
         }
 
         return instancesList;
@@ -105,7 +122,7 @@ class Config {
         } catch (error) {
             console.warn('Falling back to offline news.json');
             try {
-                const filePath = path.join(__dirname, '../offline_mode/news.json');
+                const filePath = path.join(__dirname, '../offline_mode/launcher/news-launcher/news.json');
                 const rawData = fs.readFileSync(filePath, 'utf-8');
                 return JSON.parse(rawData);
             } catch (err) {

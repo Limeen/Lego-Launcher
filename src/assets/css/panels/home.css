@@ -552,6 +552,7 @@ display: flex;
     background: var(--background);
     border-radius: 10px;
     padding: 1rem 5rem;
+    border: solid 1px #414141;
 }
 
 .close-popup {

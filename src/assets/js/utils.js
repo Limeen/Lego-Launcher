@@ -88,10 +88,23 @@ async function accountSelect(data) {
 // }
 
  function headplayer(pseudo) {
-    //document.querySelector(".player-head").style.backgroundImage = `url(assets/images/default/steve.png)`;
-    document.querySelector(".player-head").style.backgroundImage = `url(https://venstone.xyz/skins/?pseudo=${pseudo})`;
+    const imageUrl = `https://venstone.xyz/skins/?pseudo=${pseudo}`;
+    const defaultImage = "assets/images/default/steve.png";
+
+    const img = new Image();
+    img.onload = function () {
+        // L'image s'est chargée correctement
+        document.querySelector(".player-head").style.backgroundImage = `url(${imageUrl})`;
+    };
+    img.onerror = function () {
+        // L'image n'a pas pu être chargée
+        document.querySelector(".player-head").style.backgroundImage = `url(${defaultImage})`;
+    };
+    img.src = imageUrl;
+
     document.getElementById("player-username").innerHTML = `${pseudo}`;
 }
+
 
 async function setStatus(opt) {
     let nameServerElement = document.querySelector('.server-status-name')
