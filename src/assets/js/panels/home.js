@@ -110,7 +110,7 @@ class Home {
         let instancePopup = document.querySelector('.instance-popup')
         let instancesListPopup = document.querySelector('.instances-List')
         let instanceCloseBTN = document.querySelector('.close-popup')
-        let createInstanceBTN = document.querySelector('.create-custom-instance')
+        //let createInstanceBTN = document.querySelector('.create-custom-instance')
 
         let playerheadBTN = document.querySelector('.player-options')
 
@@ -198,11 +198,14 @@ class Home {
         })
 
         instanceCloseBTN.addEventListener('click', () => instancePopup.style.display = 'none')
-        createInstanceBTN.addEventListener('click', () => {
-            instancePopup.style.display = 'none'
-            window.open('pages/create-instance.html')
+        // createInstanceBTN.addEventListener('click', () => {
+        //     instancePopup.style.display = 'none'
+        //     window.open('pages/create-instance.html')
+        // })
+        playerheadBTN.addEventListener('click', () => {
+            let pseudo = document.getElementById("player-username").textContent
+            window.open(`https://venstone.xyz/skins/changeskin/?pseudo=` + pseudo)
         })
-        playerheadBTN.addEventListener('click', () => window.open('https://venstone.xyz/skins/changeskin/'))
 
     }
 
