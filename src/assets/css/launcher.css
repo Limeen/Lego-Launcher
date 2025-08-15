@@ -166,8 +166,8 @@ input::-webkit-inner-spin-button {
 }
 
 .popup-content {
-    color: white;
-    font-weight: light !important;
+    color: white !important;
+    font-weight: lighter !important;
 }
 
 .popup-options {

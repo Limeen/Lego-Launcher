@@ -3,132 +3,103 @@
  * Luuxis License v1.0 (voir fichier LICENSE pour les détails en FR/EN)
  */
 
-const fs = require('fs');
-const path = require('path');
-const pkg = require('../package.json');
 const nodeFetch = require("node-fetch");
 const convert = require('xml-js');
 
-let url = pkg.user ? `${pkg.url}/${pkg.user}` : pkg.url;
+let url = "https://venstone.xyz/launcher-data/stable";
+let fallbackUrl = "http://launcher-data.alwaysdata.net/stable";
+
 let configUrl = `${url}/launcher/config-launcher/config.json`;
 let newsUrl = `${url}/launcher/news-launcher/news.json`;
 
+async function ensureUrl() {
+    try {
+        let res = await nodeFetch(configUrl, { method: "HEAD" });
+        if (!res.ok) throw new Error(`status ${res.status}`);
+    } catch (err) {
+        console.warn("[Launcher] Serveur principal injoignable → bascule sur fallback :", err.message);
+        url = fallbackUrl;
+        configUrl = `${url}/launcher/config-launcher/config.json`;
+        newsUrl = `${url}/launcher/news-launcher/news.json`;
+    }
+}
+
 class Config {
     async GetConfig() {
-        try {
-            const res = await nodeFetch(configUrl);
-            if (res.status === 200) return await res.json();
-            console.warn(`Server returned status ${res.status} for config.json`);
-            throw new Error('Server not accessible');
-        } catch (error) {
-            console.warn('Falling back to offline config.json');
-            try {
-                const filePath = path.join(__dirname, '../offline_mode/launcher/config-launcher/config.json');
-                const rawData = fs.readFileSync(filePath, 'utf-8');
-                return JSON.parse(rawData);
-            } catch (err) {
-                console.error('Failed to load offline config.json:', err);
-                throw { error: { message: 'Unable to load config.json online or offline', details: err } };
-            }
-        }
+        await ensureUrl();
+
+        return new Promise((resolve, reject) => {
+            nodeFetch(configUrl).then(async res => {
+                if (res.status === 200) return resolve(res.json());
+                else {
+                    return reject({
+                        error: {
+                            code: "Erreur",
+                            message: "❌ Aucune connexion internet ou impossible de se connecter aux services Venstone."
+                        }
+                    });
+                }
+            }).catch(error => {
+                return reject({
+                    error: {
+                        code: "Erreur",
+                        message: "❌ Aucune connexion internet ou impossible de se connecter aux services Venstone."
+                    }
+                });
+            });
+        });
     }
 
     async getInstanceList() {
-        const urlInstance = `${url}/files`;
+        await ensureUrl();
+
+        let urlInstance = `${url}/files`;
+        let instances = await nodeFetch(urlInstance).then(res => res.json()).catch(err => err);
         let instancesList = [];
+        instances = Object.entries(instances);
 
-        try {
-            const res = await nodeFetch(urlInstance);
-            const contentType = res.headers.get("content-type") || "";
-            if (!contentType.includes("application/json")) {
-                throw new Error("Invalid content-type: " + contentType);
-            }
-
-            let instances = await res.json();
-            if (typeof instances !== 'object' || instances === null) {
-                throw new Error("Invalid JSON structure");
-            }
-
-            for (let [name, data] of Object.entries(instances)) {
-                if (typeof data !== 'object' || data === null) {
-                    console.warn(`Skipping invalid or null instance: ${name}`);
-                    continue;
-                }
-                let instance = { ...data, name };
-                instancesList.push(instance);
-            }
-
-        } catch (err) {
-            console.warn('Falling back to offline instance list');
-            try {
-                const filePath = path.join(__dirname, '../offline_mode/files/offline_instance_list.json');
-                const rawData = fs.readFileSync(filePath, 'utf-8');
-                const offlineInstances = JSON.parse(rawData);
-
-                for (let [name, data] of Object.entries(offlineInstances)) {
-                    if (typeof data !== 'object' || data === null) {
-                        console.warn(`Skipping invalid or null offline instance: ${name}`);
-                        continue;
-                    }
-                    let instance = { ...data, name };
-                    instancesList.push(instance);
-                }
-
-            } catch (errOffline) {
-                console.error('Failed to load offline instance list:', errOffline);
-            }
+        for (let [name, data] of instances) {
+            let instance = data;
+            instance.name = name;
+            instancesList.push(instance);
         }
-
         return instancesList;
     }
 
     async getNews() {
-        try {
-            let config = await this.GetConfig() || {};
+        await ensureUrl();
 
-            // Use RSS feed if specified
-            if (config.rss) {
-                try {
-                    const res = await nodeFetch(config.rss);
-                    if (res.status !== 200) throw new Error("RSS server not accessible");
+        let config = await this.GetConfig() || {};
 
-                    let responseText = await res.text();
-                    let parsed = JSON.parse(convert.xml2json(responseText, { compact: true }));
-                    let items = parsed?.rss?.channel?.item;
+        if (config.rss) {
+            return new Promise((resolve, reject) => {
+                nodeFetch(config.rss).then(async res => {
+                    if (res.status === 200) {
+                        let news = [];
+                        let response = await res.text();
+                        response = (JSON.parse(convert.xml2json(response, { compact: true })))?.rss?.channel?.item;
 
-                    if (!items) throw new Error("Invalid RSS structure");
-
-                    if (!Array.isArray(items)) items = [items];
-
-                    return items.map(item => ({
-                        title: item.title._text,
-                        content: item['content:encoded']._text,
-                        author: item['dc:creator']._text,
-                        publish_date: item.pubDate._text
-                    }));
-                } catch (err) {
-                    console.warn('Failed to load RSS feed, trying fallback news.json...');
-                }
-            }
-
-            // If no RSS or it fails, fallback to news.json
-            const res = await nodeFetch(newsUrl);
-            if (res.status === 200) {
-                return await res.json();
-            } else {
-                throw new Error('Server not accessible');
-            }
-
-        } catch (error) {
-            console.warn('Falling back to offline news.json');
-            try {
-                const filePath = path.join(__dirname, '../offline_mode/launcher/news-launcher/news.json');
-                const rawData = fs.readFileSync(filePath, 'utf-8');
-                return JSON.parse(rawData);
-            } catch (err) {
-                console.error('Failed to load offline news.json:', err);
-                throw { error: { message: 'Unable to load news.json online or offline', details: err } };
-            }
+                        if (!Array.isArray(response)) response = [response];
+                        for (let item of response) {
+                            news.push({
+                                title: item.title._text,
+                                content: item['content:encoded']._text,
+                                author: item['dc:creator']._text,
+                                publish_date: item.pubDate._text
+                            });
+                        }
+                        return resolve(news);
+                    }
+                    else return reject({ error: { code: res.statusText, message: 'server not accessible' } });
+                }).catch(error => reject({ error }));
+            });
+        } else {
+            return new Promise((resolve, reject) => {
+                nodeFetch(newsUrl).then(async res => {
+                    if (res.status === 200) return resolve(res.json());
+                    else return reject({ error: { code: res.statusText, message: 'server not accessible' } });
+                }).catch(error => reject({ error }));
+            });
         }
     }
 }
