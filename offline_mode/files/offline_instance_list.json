@@ -1,7 +1,7 @@
 {
   "Venstone 1.21.8": {
     "name": "Venstone 1.21.8",
-    "url": "http://venstone.xyz/launcher-data/new/files?instance=Venstone 1.21.8",
+    "url": "http://launcher-data.alwaysdata.net/stable/files?instance=Venstone 1.21.8",
     "loadder": {
       "minecraft_version": "1.21.8",
       "loadder_type": "fabric",
@@ -38,7 +38,7 @@
   
   "Venstone 1.21.1": {
     "name": "Venstone 1.21.1",
-    "url": "http://venstone.xyz/launcher-data/new/files?instance=Venstone 1.21.1",
+    "url": "http://launcher-data.alwaysdata.net/stable/files?instance=Venstone 1.21.1",
     "loadder": {
       "minecraft_version": "1.21.1",
       "loadder_type": "fabric",
