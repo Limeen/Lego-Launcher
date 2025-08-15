@@ -117,7 +117,12 @@ class Splash {
             this.startLauncher();
         }).catch(e => {
             console.error(e);
-            return this.shutdown("Problème de connexion.");
+            this.setStatus("API Venstone injoignable")
+            sleep(3000);
+            this.setStatus("Utilisation des serveurs de secours...")
+            sleep(2000);
+            this.startLauncher();
+            //return this.shutdown("Problème de connexion.");
         })
     }
 

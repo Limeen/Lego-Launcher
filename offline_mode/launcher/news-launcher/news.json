@@ -1,7 +1,7 @@
 [
     {
-        "title": "<p style='color: #4b85fa;'>Mode hors-ligne</p><p style='color: white;'>・Serveurs Venstone injoignables</p>",
-        "content": "- Les serveurs Venstone sont injoignables ou vous êtes actuellement déconnecté d'internet.</br>- Vous pouvez lancer votre jeu uniquement avec les versions que vous avez déjà installée(s) sur votre ordinateur lorsque le launcher arrivait à joindre les serveurs Venstone.</br>- Le mode hors-ligne est encore en développement.",
+        "title": "<p style='color: #ff5e5e;'>Mode hors-ligne</p><p style='color: white;'>・API Venstone injoignable</p>",
+        "content": "- Les services Venstone sont inaccessibles ou vous n'avez aucune connexion internet.</br>- Une connexion internet est <b>requise</b> pour lancer le jeu.</br>- Le mode hors-ligne est en cours de développement.</br>- Le launcher utilise actuellement un serveur de secours.",
         "author": "",
         "publish_date": "2025-01-01 10:43:09"
     }
