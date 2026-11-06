@@ -46,36 +46,84 @@ function uniqueName(dir, name, label) {
     return candidate;
 }
 
-/** Déplace le contenu d'un vrai dossier d'instance vers le dossier partagé. */
+let linkSupport = null;
+
+/**
+ * Vérifie une fois par session que le disque accepte les liens de dossier (NTFS, ext4, APFS...).
+ * Sans ça on ne déplace RIEN : les mondes restent dans leur instance, comme avant.
+ */
+function linksSupported(sharedDir) {
+    if (linkSupport !== null) return linkSupport;
+    let probeTarget = `${sharedDir}/.link-test-target`;
+    let probeLink = `${sharedDir}/.link-test`;
+    try {
+        fs.mkdirSync(probeTarget, { recursive: true });
+        if (isLink(probeLink)) fs.unlinkSync(probeLink);
+        fs.symlinkSync(path.resolve(probeTarget), path.resolve(probeLink), 'junction');
+        fs.unlinkSync(probeLink);
+        linkSupport = true;
+    } catch (err) {
+        console.warn('[Shared] liens de dossier non supportés, partage désactivé :', err.message);
+        linkSupport = false;
+    }
+    try { fs.rmdirSync(probeTarget); } catch { }
+    return linkSupport;
+}
+
+function isEmptyDir(dir) {
+    return !fs.existsSync(dir) || fs.readdirSync(dir).length === 0;
+}
+
+/**
+ * Déplace le contenu d'un vrai dossier d'instance vers le dossier partagé.
+ * Uniquement des renommages (atomiques, même disque) : jamais de copie + suppression,
+ * qui pourrait laisser un monde à moitié supprimé si un fichier est verrouillé.
+ * Renvoie true si le dossier source est vide (et supprimé) à la fin.
+ */
 function migrateFolder(source, target, label) {
+    // Cas le plus courant : le dossier partagé est encore vide → un seul renommage.
+    if (isEmptyDir(target)) {
+        try {
+            if (fs.existsSync(target)) fs.rmdirSync(target);
+            fs.renameSync(source, target);
+            return true;
+        } catch (err) {
+            fs.mkdirSync(target, { recursive: true });
+            console.warn(`[Shared] déplacement groupé impossible (${err.message}), déplacement élément par élément.`);
+        }
+    }
+
     for (let entry of fs.readdirSync(source)) {
         let destName = uniqueName(target, entry, label);
         try {
             fs.renameSync(`${source}/${entry}`, `${target}/${destName}`);
         } catch (err) {
-            // Autre volume / fichier verrouillé : copie puis suppression.
-            fs.cpSync(`${source}/${entry}`, `${target}/${destName}`, { recursive: true });
-            fs.rmSync(`${source}/${entry}`, { recursive: true, force: true });
+            // Monde ouvert dans un jeu encore lancé, antivirus... : on le laisse en place,
+            // il sera déplacé au prochain lancement.
+            console.warn(`[Shared] "${entry}" n'a pas pu être déplacé (${err.message}), nouvel essai au prochain lancement.`);
         }
     }
+
+    if (!isEmptyDir(source)) return false;
     fs.rmdirSync(source);
+    return true;
 }
 
 function linkFolder(instanceDir, sharedDir, name, label) {
     let link = `${instanceDir}/${name}`;
     let target = `${sharedDir}/${name}`;
-    fs.mkdirSync(target, { recursive: true });
 
     if (isLink(link)) {
         let current = null;
         try { current = fs.readlinkSync(link); } catch { }
         if (current && samePath(current, target) && fs.existsSync(link)) return;
-        fs.unlinkSync(link); // lien cassé ou pointant ailleurs
+        fs.unlinkSync(link); // lien cassé ou pointant ailleurs (le contenu pointé n'est pas touché)
     } else if (fs.existsSync(link)) {
         if (!fs.statSync(link).isDirectory()) fs.renameSync(link, `${link}.old`);
-        else migrateFolder(link, target, label);
+        else if (!migrateFolder(link, target, label)) return; // migration incomplète : on garde le dossier réel
     }
 
+    fs.mkdirSync(target, { recursive: true });
     fs.symlinkSync(path.resolve(target), path.resolve(link), 'junction');
 }
 
@@ -204,6 +252,8 @@ export function syncServers(gamePath, instanceDir, merge = false) {
     if (!hasShared && hasLocal) return copyKeepTime(local, shared);
 
     if (merge) {
+        // Sauvegarde de la liste d'origine de l'instance avant la toute première fusion.
+        if (!fs.existsSync(`${local}.avant-partage`)) fs.copyFileSync(local, `${local}.avant-partage`);
         try {
             let merged = mergeServers(fs.readFileSync(shared), fs.readFileSync(local));
             fs.writeFileSync(shared, merged);
@@ -227,13 +277,23 @@ export function prepareSharedData(gamePath, instanceDir, instance) {
     fs.mkdirSync(instanceDir, { recursive: true });
     let shared = sharedPath(gamePath);
     let firstTime = !fs.existsSync(`${instanceDir}/${MARKER}`);
+    fs.mkdirSync(shared, { recursive: true });
 
     for (let dir of SHARED_DIRS) {
+        let link = `${instanceDir}/${dir}`;
         if (!canShare(instance, dir)) {
+            // La lib supprimerait le contenu du lien pendant sa vérification : on le retire
+            // (le contenu partagé n'est pas touché) et l'instance garde un dossier à elle.
+            if (isLink(link)) fs.unlinkSync(link);
             console.warn(`[Shared] ${instance.name} : "${dir}" non partagé (instance vérifiée sans exclusion).`);
             continue;
         }
-        linkFolder(instanceDir, shared, dir, instance.name);
+        if (!linksSupported(shared)) break;
+        try {
+            linkFolder(instanceDir, shared, dir, instance.name);
+        } catch (err) {
+            console.error(`[Shared] ${instance.name} : partage de "${dir}" impossible :`, err);
+        }
     }
     if (canShare(instance, SERVERS_FILE)) syncServers(gamePath, instanceDir, firstTime);
 

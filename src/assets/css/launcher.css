@@ -5,6 +5,11 @@
 @import 'panels/instances.css';
 @import 'panels/settings.css';
 
+html,
+body {
+    overflow: hidden; /* fenêtre de taille fixe : jamais de barre de défilement */
+}
+
 body {
     margin: 0;
     padding: 0;

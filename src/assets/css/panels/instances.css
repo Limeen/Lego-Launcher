@@ -26,24 +26,70 @@
     max-width: 230px;
 }
 
-.player-options:hover {
-    cursor: pointer;
-}
-
-.player-options:hover .player-username {
-    color: #5aa0ff;
-}
-
 .player-head {
+    position: relative;
     flex: none;
     background: url('../../images/default/steve.png'), no-repeat;
     background-size: cover;
     image-rendering: pixelated;
     height: 3rem;
     width: 3rem;
-    pointer-events: none;
     border-radius: 15px;
+    cursor: pointer;
     z-index: 9;
+    transition: transform .2s;
+}
+
+.player-head:hover {
+    transform: scale(1.05);
+}
+
+/* Bulle "Changer de skin" au survol de la tête */
+.player-head:after,
+.player-head:before {
+    position: absolute;
+    left: 50%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+}
+
+.player-head:after {
+    content: 'Changer de skin';
+    left: -6px; /* ancrée à gauche : la tête est collée au bord de la fenêtre */
+    bottom: calc(100% + 12px);
+    transform: translate(0, 4px);
+    padding: 6px 11px;
+    border-radius: 9px;
+    background: #292929;
+    border: solid 1px #3b3b3b;
+    box-shadow: 0 6px 18px #00000080;
+    color: #F1F1F1;
+    font: normal normal bold 12px/16px Poppins;
+    white-space: nowrap;
+    image-rendering: auto;
+}
+
+.player-head:before {
+    content: '';
+    bottom: calc(100% + 7px);
+    width: 9px;
+    height: 9px;
+    background: #292929;
+    border-right: solid 1px #3b3b3b;
+    border-bottom: solid 1px #3b3b3b;
+    transform: translate(-50%, 4px) rotate(45deg);
+    z-index: 1;
+}
+
+.player-head:hover:after {
+    opacity: 1;
+    transform: translate(0, 0);
+}
+
+.player-head:hover:before {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(45deg);
 }
 
 .player-username {
@@ -278,18 +324,31 @@
     line-height: 14px;
 }
 
+/* La roue est centrée dans une boîte carrée et c'est le glyphe lui-même qui tourne
+   (autour de son propre centre) : plus d'effet "décentré" au survol. */
 .settings-btn {
-    width: 2.2rem;
-    height: 2.3rem;
-    font-size: 3rem;
-    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
     margin: 0 1.5rem;
-    transition: transform .4s;
+    color: white;
+    cursor: pointer;
 }
 
-.settings-btn:hover {
-    cursor: pointer;
-    transform: rotate(45deg);
+.settings-btn.icon-settings:before {
+    display: block;
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    transform-origin: 50% 50%;
+    transition: transform .5s ease;
+}
+
+.settings-btn:hover:before {
+    transform: rotate(60deg);
 }
 
 /*******************************************************************************

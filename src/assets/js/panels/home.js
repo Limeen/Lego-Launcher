@@ -185,7 +185,7 @@ class Home {
     }
 
     socialLick() {
-        document.querySelector('.player-options').addEventListener('click', () => {
+        document.querySelector('.player-head').addEventListener('click', () => {
             let pseudo = document.getElementById("player-username").textContent
             shell.openExternal(`https://venstone.xyz/skins/changeskin/?pseudo=${encodeURIComponent(pseudo)}`)
         })

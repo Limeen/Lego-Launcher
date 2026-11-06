@@ -119,15 +119,13 @@
     padding: 40px 34px 0;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(6px);
-    transition: opacity .2s ease, transform .2s ease;
+    transition: opacity .2s ease;
 }
 
 .active-container-settings {
     opacity: 1;
     z-index: 1;
     pointer-events: all;
-    transform: none;
 }
 
 .tab-header {
