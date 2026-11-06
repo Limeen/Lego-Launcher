@@ -13,7 +13,6 @@
                     </div>
                     <div class="status-player-count">
                         <div class="player-count">?</div>
-                        <!-- <div class="online off"></div> -->
                     </div>
                 </div>
                 <a href="https://venstone.xyz/dynmap" target="_blank">
@@ -37,50 +36,161 @@
                         <label class="desc" style="color: #2379ee; cursor: pointer;">venstone.xyz/discord</label>
                     </div>
                 </a>
-                </div>
             </div>
         </div>
     </div>
 
     <div class="sidebar">
-        <div class="player-options">
+        <div class="player-options" title="Changer de skin">
             <div class="player-head"></div>
             <label class="player-username" id="player-username">Joueur</label>
         </div>
 
         <div class="play-elements">
-            <div class="play-instance">
-                <p class="play-instance-text">Jouer</p>
-                <div class="instance-select icon-arrow"></div>
+            <div class="play-group">
+                <div class="instance-picker" title="Changer d'instance">
+                    <div class="instance-picker-icon instance-icon"></div>
+                    <div class="instance-picker-text">
+                        <div class="instance-picker-name">Chargement...</div>
+                        <div class="instance-picker-meta"></div>
+                    </div>
+                    <div class="instance-picker-chevron icon-arrow"></div>
+                </div>
+                <div class="play-instance">
+                    <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.8-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></svg>
+                    <p class="play-instance-text">Jouer</p>
+                </div>
             </div>
-            
+
             <div class="info-starting-game">
                 <div class="info-starting-game-text">Connexion...</div>
-                <progress value="0" max="0" class="progress-bar"></progress>
+                <div class="progress-bar indeterminate"><div class="progress-fill"></div></div>
             </div>
         </div>
 
         <div class="settings-btn icon-settings"></div>
     </div>
 
-    <div class="instance-popup">
-        <div class="instances-tab">
-            <div class="close-popup icon-close"></div>
-            <p class="instance-title-text">Changer de version</p>
-            <div class="instances-type-box">
-                <div class="instance-type">
-                    <!--<p class="instance-type-text">Officiels</p> -->
-                    <div class="instances-List">
+    <!-- Sélection d'instance -->
+    <div class="instance-popup modal-overlay">
+        <div class="instances-tab modal-window">
+            <div class="modal-header">
+                <div>
+                    <p class="modal-title">Choisir une instance</p>
+                    <p class="modal-subtitle instances-subtitle">Vos mondes, serveurs et captures d'écran sont partagés entre toutes les instances.</p>
+                </div>
+                <div class="close-popup icon-close"></div>
+            </div>
+            <div class="instances-columns">
+                <section class="instances-section instances-section-official">
+                    <div class="section-title">
+                        <img src="assets/images/icon.png" class="section-title-icon"/>
+                        Instances officielles
+                    </div>
+                    <div class="instances-List"></div>
+                </section>
+                <section class="instances-section instances-section-local">
+                    <div class="section-title">
+                        Mes instances
+                        <span class="section-count custom-instances-count">0</span>
+                    </div>
+                    <div class="custom-instances-List"></div>
+                    <div class="create-custom-instance">
+                        <span class="create-plus">+</span> Créer une instance
+                    </div>
+                </section>
+            </div>
+        </div>
 
+        <div class="confirm-delete">
+            <div class="confirm-delete-tab">
+                <p class="modal-title">Supprimer l'instance ?</p>
+                <p class="confirm-delete-text"></p>
+                <label class="checkbox-line">
+                    <input type="checkbox" class="confirm-delete-files"/>
+                    <span>Supprimer aussi les fichiers (mods, configs...). Les mondes partagés sont conservés.</span>
+                </label>
+                <div class="confirm-delete-buttons">
+                    <div class="btn btn-secondary confirm-delete-cancel">Annuler</div>
+                    <div class="btn btn-danger confirm-delete-ok">Supprimer</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Création d'instance -->
+    <div class="create-popup modal-overlay">
+        <div class="create-tab modal-window">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-back create-back" title="Retour">
+                        <div class="icon-arrow"></div>
+                    </div>
+                    <div>
+                        <p class="modal-title">Nouvelle instance</p>
+                        <p class="modal-subtitle">Créez votre propre profil de jeu, stocké sur cet ordinateur.</p>
                     </div>
                 </div>
-                <!-- <div class="instance-type">
-                    <p class="instance-type-text">Customs</p>
-                    <div class="create-custom-instance">+ Créer une instance</div>
-                    <div class="custom-instances-List">
-                        
+                <div class="close-popup create-close icon-close"></div>
+            </div>
+
+            <div class="create-body">
+                <div class="create-form">
+                    <div class="field">
+                        <label class="field-label" for="create-name">Nom</label>
+                        <input type="text" id="create-name" class="field-input create-name" maxlength="32" placeholder="Mon instance" spellcheck="false"/>
                     </div>
-                </div> -->
+
+                    <div class="field">
+                        <div class="field-label-row">
+                            <label class="field-label" for="create-mc-version">Version de Minecraft</label>
+                            <label class="toggle-small">
+                                <input type="checkbox" class="create-snapshots"/>
+                                <span>Snapshots</span>
+                            </label>
+                        </div>
+                        <select id="create-mc-version" class="field-input create-mc-version"></select>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Mod loader</label>
+                        <div class="segmented create-loader">
+                            <div class="segment active" data-loader="none">Vanilla</div>
+                            <div class="segment" data-loader="fabric">Fabric</div>
+                            <div class="segment" data-loader="quilt">Quilt</div>
+                            <div class="segment" data-loader="forge">Forge</div>
+                            <div class="segment" data-loader="neoforge">NeoForge</div>
+                        </div>
+                    </div>
+
+                    <div class="field create-loader-field">
+                        <label class="field-label" for="create-loader-version">Version du loader</label>
+                        <select id="create-loader-version" class="field-input create-loader-version"></select>
+                    </div>
+
+                    <div class="field create-fabricapi-field">
+                        <div class="field-label-row">
+                            <label class="field-label" for="create-fabricapi-version">Fabric API</label>
+                            <label class="toggle-small">
+                                <input type="checkbox" class="create-fabricapi-enabled" checked/>
+                                <span>Installer</span>
+                            </label>
+                        </div>
+                        <select id="create-fabricapi-version" class="field-input create-fabricapi-version"></select>
+                    </div>
+                </div>
+
+                <aside class="create-preview">
+                    <div class="preview-label">Aperçu</div>
+                    <div class="preview-card">
+                        <div class="instance-icon preview-icon"></div>
+                        <div class="preview-name">Mon instance</div>
+                        <div class="preview-chips"></div>
+                        <div class="color-swatches" title="Couleur de l'instance"></div>
+                    </div>
+                    <div class="create-error"></div>
+                    <div class="btn btn-primary create-submit">Créer l'instance</div>
+                </aside>
             </div>
         </div>
     </div>

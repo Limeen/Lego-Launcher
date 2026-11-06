@@ -15,7 +15,10 @@
     "license": "CCANC",
     "nodemonConfig": {
         "ext": "js,html,css",
-        "ignore": "**/test"
+        "ignore": [
+            "**/test",
+            "data/**"
+        ]
     },
     "dependencies": {
         "electron-updater": "^6.1.8",

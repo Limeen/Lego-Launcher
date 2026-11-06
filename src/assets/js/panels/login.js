@@ -5,7 +5,8 @@
 const { AZauth, Mojang } = require('minecraft-java-core');
 const { ipcRenderer } = require('electron');
 
-import { popup, database, changePanel, accountSelect, addAccount, config, setStatus } from '../utils.js';
+import { popup, database, changePanel, accountSelect, addAccount, offlineAccount } from '../utils.js';
+import { resolveInstanceSelection } from '../utils/instances.js';
 
 class Login {
     static id = "login";
@@ -97,17 +98,7 @@ class Login {
                 return;
             }
 
-            let MojangConnect = await Mojang.login(emailOffline.value);
-
-            if (MojangConnect.error) {
-                popupLogin.openPopup({
-                    title: 'Erreur',
-                    content: MojangConnect.message,
-                    options: true
-                });
-                return;
-            }
-            await this.saveData(MojangConnect)
+            await this.saveData(offlineAccount(emailOffline.value))
             popupLogin.closePopup();
         });
     }
@@ -203,22 +194,8 @@ class Login {
     async saveData(connectionData) {
         let configClient = await this.db.readData('configClient');
         let account = await this.db.createData('accounts', connectionData)
-        let instanceSelect = configClient.instance_selct
-        let instancesList = await config.getInstanceList()
         configClient.account_selected = account.ID;
-
-        for (let instance of instancesList) {
-            if (instance.whitelistActive) {
-                let whitelist = instance.whitelist.find(whitelist => whitelist == account.name)
-                if (whitelist !== account.name) {
-                    if (instance.name == instanceSelect) {
-                        let newInstanceSelect = instancesList.find(i => i.whitelistActive == false)
-                        configClient.instance_selct = newInstanceSelect.name
-                        await setStatus(newInstanceSelect.status)
-                    }
-                }
-            }
-        }
+        configClient.instance_selct = await resolveInstanceSelection(configClient, account);
 
         await this.db.updateData('configClient', configClient);
         await addAccount(account);

@@ -51,11 +51,22 @@ class Splash {
     async checkUpdate() {
         this.setStatus(`Recherche de mise à jour...`);
 
-        ipcRenderer.invoke('update-app').then().catch(err => {
-            return this.shutdown(`Erreur :<br>${err.message}`); // à modifier pour le mode hors-ligne
-        });
+        // Hors-ligne ou serveur de mise à jour injoignable : on continue quand même.
+        let skipUpdate = (err) => {
+            if (this.updateHandled) return;
+            this.updateHandled = true;
+            console.warn('[Update] vérification impossible :', err?.message || err);
+            this.maintenanceCheck();
+        };
+
+        ipcRenderer.invoke('update-app').then(res => {
+            // En dev / version non packagée, electron-updater ne renvoie rien.
+            if (!res) skipUpdate('aucune information de mise à jour');
+        }).catch(err => skipUpdate(err?.message || err));
 
         ipcRenderer.on('updateAvailable', () => {
+            if (this.updateHandled) return;
+            this.updateHandled = true;
             this.setStatus(`Mise à jour disponible !`);
             if (os.platform() == 'win32') {
                 this.toggleProgress();
@@ -65,16 +76,20 @@ class Splash {
         })
 
         ipcRenderer.on('error', (event, err) => {
-            if (err) return this.shutdown(`${err.message}`);
+            if (this.downloadingUpdate) return this.shutdown(`${err?.message || err}`);
+            skipUpdate(err);
         })
 
         ipcRenderer.on('download-progress', (event, progress) => {
+            this.downloadingUpdate = true;
             ipcRenderer.send('update-window-progress', { progress: progress.transferred, size: progress.total })
             this.setProgress(progress.transferred, progress.total);
         })
 
         ipcRenderer.on('update-not-available', () => {
-            console.error("Mise à jour indisponible.");
+            if (this.updateHandled) return;
+            this.updateHandled = true;
+            console.log("Aucune mise à jour disponible.");
             this.maintenanceCheck();
         })
     }
@@ -89,6 +104,15 @@ class Splash {
     }
 
     async dowloadUpdate() {
+        try {
+            await this.findUpdateDownload();
+        } catch (err) {
+            console.error('[Update]', err);
+            this.maintenanceCheck();
+        }
+    }
+
+    async findUpdateDownload() {
         const repoURL = pkg.repository.url.replace("git+", "").replace(".git", "").replace("https://github.com/", "").split("/");
         const githubAPI = await nodeFetch('https://api.github.com').then(res => res.json()).catch(err => err);
 
@@ -96,13 +120,15 @@ class Splash {
         const githubAPIRepo = await nodeFetch(githubAPIRepoURL).then(res => res.json()).catch(err => err);
 
         const releases_url = await nodeFetch(githubAPIRepo.releases_url.replace("{/id}", '')).then(res => res.json()).catch(err => err);
-        const latestRelease = releases_url[0].assets;
+        const latestRelease = releases_url?.[0]?.assets;
+        if (!latestRelease) return this.maintenanceCheck();
         let latest;
 
         if (os.platform() == 'darwin') latest = this.getLatestReleaseForOS('mac', '.dmg', latestRelease);
-        else if (os == 'linux') latest = this.getLatestReleaseForOS('linux', '.appimage', latestRelease);
+        else if (os.platform() == 'linux') latest = this.getLatestReleaseForOS('linux', '.appimage', latestRelease);
 
 
+        if (!latest) return this.maintenanceCheck();
         this.setStatus(`Mise à jour disponible !<br><div class="download-update">Télécharger</div>`);
         document.querySelector(".download-update").addEventListener("click", () => {
             shell.openExternal(latest.browser_download_url);
@@ -112,18 +138,15 @@ class Splash {
 
 
     async maintenanceCheck() {
-        config.GetConfig().then(res => {
-            if (res.maintenance) return this.shutdown(res.maintenance_message);
-            this.startLauncher();
-        }).catch(e => {
-            console.error(e);
-            this.setStatus("API Venstone injoignable")
-            sleep(3000);
-            this.setStatus("Utilisation des serveurs de secours...")
-            sleep(2000);
-            this.startLauncher();
-            //return this.shutdown("Problème de connexion.");
-        })
+        if (this.maintenanceChecked) return;
+        this.maintenanceChecked = true;
+        let res = await config.GetConfig();
+        if (res.maintenance) return this.shutdown(res.maintenance_message);
+        if (res.offline) {
+            this.setStatus("Mode hors-ligne");
+            await sleep(1200);
+        }
+        this.startLauncher();
     }
 
     startLauncher() {

@@ -3,7 +3,8 @@
  * Luuxis License v1.0 (voir fichier LICENSE pour les détails en FR/EN)
  */
 
-import { changePanel, accountSelect, database, Slider, config, setStatus, popup, appdata, setBackground } from '../utils.js'
+import { changePanel, accountSelect, database, Slider, popup, setBackground } from '../utils.js'
+import { getGamePath, resolveInstanceSelection } from '../utils/instances.js'
 const { ipcRenderer } = require('electron');
 const os = require('os');
 
@@ -65,9 +66,9 @@ class Settings {
 
                     let account = await this.db.readData('accounts', id);
                     let configClient = await this.setInstance(account);
-                    await accountSelect(account);
                     configClient.account_selected = account.ID;
-                    return await this.db.updateData('configClient', configClient);
+                    await this.db.updateData('configClient', configClient);
+                    return await accountSelect(account);
                 }
 
                 if (e.target.classList.contains("delete-profile")) {
@@ -87,11 +88,10 @@ class Settings {
 
                     if (configClient.account_selected == id) {
                         let allAccounts = await this.db.readAllData('accounts');
-                        configClient.account_selected = allAccounts[0].ID
-                        accountSelect(allAccounts[0]);
-                        let newInstanceSelect = await this.setInstance(allAccounts[0]);
-                        configClient.instance_selct = newInstanceSelect.instance_selct
-                        return await this.db.updateData('configClient', configClient);
+                        let newConfig = await this.setInstance(allAccounts[0]);
+                        newConfig.account_selected = allAccounts[0].ID
+                        await this.db.updateData('configClient', newConfig);
+                        return accountSelect(allAccounts[0]);
                     }
                 }
             } catch (err) {
@@ -104,21 +104,7 @@ class Settings {
 
     async setInstance(auth) {
         let configClient = await this.db.readData('configClient')
-        let instanceSelect = configClient.instance_selct
-        let instancesList = await config.getInstanceList()
-
-        for (let instance of instancesList) {
-            if (instance.whitelistActive) {
-                let whitelist = instance.whitelist.find(whitelist => whitelist == auth.name)
-                if (whitelist !== auth.name) {
-                    if (instance.name == instanceSelect) {
-                        let newInstanceSelect = instancesList.find(i => i.whitelistActive == false)
-                        configClient.instance_selct = newInstanceSelect.name
-                        await setStatus(newInstanceSelect.status)
-                    }
-                }
-            }
-        }
+        configClient.instance_selct = await resolveInstanceSelection(configClient, auth)
         return configClient
     }
 
@@ -163,7 +149,7 @@ class Settings {
 
     async javaPath() {
         let javaPathText = document.querySelector(".java-path-txt")
-        javaPathText.textContent = `${await appdata()}/${process.platform == 'darwin' ? this.config.dataDirectory : `.${this.config.dataDirectory}`}/runtime`;
+        javaPathText.textContent = `${await getGamePath(this.config)}/runtime`;
 
         let configClient = await this.db.readData('configClient')
         let javaPath = configClient?.java_config?.java_path || 'Java est actuellement géré par le launcher.';

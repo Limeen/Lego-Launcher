@@ -3,7 +3,7 @@
  * Luuxis License v1.0 (voir fichier LICENSE pour les détails en FR/EN)
  */
 
-const { app, BrowserWindow, Menu } = require("electron");
+const { app, BrowserWindow, Menu, shell } = require("electron");
 const path = require("path");
 const os = require("os");
 const pkg = require("../../../../package.json");
@@ -42,6 +42,11 @@ function createWindow() {
     });
     Menu.setApplicationMenu(null);
     mainWindow.setMenuBarVisibility(false);
+    // Liens externes (carte, guide, discord, skins...) : navigateur par défaut.
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (/^https?:\/\//.test(url)) shell.openExternal(url);
+        return { action: 'deny' };
+    });
     mainWindow.loadFile(path.join(`${app.getAppPath()}/src/launcher.html`));
     mainWindow.once('ready-to-show', () => {
         if (mainWindow) {

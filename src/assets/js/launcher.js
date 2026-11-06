@@ -8,7 +8,7 @@ import Home from './panels/home.js';
 import Settings from './panels/settings.js';
 
 // import modules
-import { logger, config, changePanel, database, popup, setBackground, accountSelect, addAccount, pkg } from './utils.js';
+import { logger, config, changePanel, database, popup, setBackground, accountSelect, addAccount, pkg, offlineAccount } from './utils.js';
 const { AZauth, Microsoft, Mojang } = require('minecraft-java-core');
 
 // libs
@@ -23,8 +23,8 @@ class Launcher {
         this.shortcut()
         await setBackground()
         this.initFrame();
-        this.config = await config.GetConfig().then(res => res).catch(err => err);
-        if (await this.config.error) return this.errorConnect()
+        // GetConfig ne rejette plus : hors-ligne il renvoie la dernière config connue.
+        this.config = await config.GetConfig();
         this.db = new database();
         await this.initConfigClient();
         this.createPanels(Login, Home, Settings);
@@ -49,16 +49,6 @@ class Launcher {
         })
     }
 
-
-    errorConnect() {
-        new popup().openPopup({
-            title: this.config.error.code,
-            content: this.config.error.message,
-            color: 'red',
-            exit: true,
-            options: true
-        });
-    }
 
     initFrame() {
         console.log('Initializing Frame...')
@@ -141,6 +131,13 @@ class Launcher {
                     await this.db.deleteData('accounts', account_ID)
                     continue
                 }
+                // Hors-ligne : impossible de rafraîchir les comptes, on les garde tels quels
+                // (sinon un échec de refresh supprimerait le compte).
+                if (this.config.offline) {
+                    await addAccount(account)
+                    if (account_ID == account_selected) accountSelect(account)
+                    continue
+                }
                 if (account.meta.type === 'Xbox') {
                     console.log(`Account Type: ${account.meta.type} | Username: ${account.name}`);
                     popupRefresh.openPopup({
@@ -199,7 +196,7 @@ class Launcher {
                         background: false
                     });
                     if (account.meta.online == false) {
-                        let refresh_accounts = await Mojang.login(account.name);
+                        let refresh_accounts = offlineAccount(account.name);
 
                         refresh_accounts.ID = account_ID
                         await addAccount(refresh_accounts)
@@ -238,20 +235,17 @@ class Launcher {
             configClient = await this.db.readData('configClient')
             account_selected = configClient ? configClient.account_selected : null
 
-            if (!account_selected) {
-                let uuid = accounts[0].ID
-                if (uuid) {
-                    configClient.account_selected = uuid
-                    await this.db.updateData('configClient', configClient)
-                    accountSelect(uuid)
-                }
-            }
-
             if (!accounts.length) {
-                config.account_selected = null
-                await this.db.updateData('configClient', config);
+                configClient.account_selected = null
+                await this.db.updateData('configClient', configClient);
                 popupRefresh.closePopup()
                 return changePanel("login");
+            }
+
+            if (!account_selected || !accounts.find(a => a.ID == account_selected)) {
+                configClient.account_selected = accounts[0].ID
+                await this.db.updateData('configClient', configClient)
+                accountSelect(accounts[0])
             }
 
             popupRefresh.closePopup()
