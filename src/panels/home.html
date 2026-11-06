@@ -102,20 +102,6 @@
             </div>
         </div>
 
-        <div class="confirm-delete">
-            <div class="confirm-delete-tab">
-                <p class="modal-title">Supprimer l'instance ?</p>
-                <p class="confirm-delete-text"></p>
-                <label class="checkbox-line">
-                    <input type="checkbox" class="confirm-delete-files"/>
-                    <span>Supprimer aussi les fichiers (mods, configs...). Les mondes partagés sont conservés.</span>
-                </label>
-                <div class="confirm-delete-buttons">
-                    <div class="btn btn-secondary confirm-delete-cancel">Annuler</div>
-                    <div class="btn btn-danger confirm-delete-ok">Supprimer</div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Création d'instance -->
@@ -191,6 +177,116 @@
                     <div class="create-error"></div>
                     <div class="btn btn-primary create-submit">Créer l'instance</div>
                 </aside>
+            </div>
+        </div>
+    </div>
+    <!-- Édition d'une instance personnelle -->
+    <div class="edit-popup modal-overlay">
+        <div class="edit-tab modal-window">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-back edit-back" title="Retour">
+                        <div class="icon-arrow"></div>
+                    </div>
+                    <div class="instance-icon edit-icon"></div>
+                    <div class="edit-heading">
+                        <p class="modal-title edit-title"></p>
+                        <p class="modal-subtitle edit-subtitle"></p>
+                    </div>
+                </div>
+                <div class="close-popup edit-close icon-close"></div>
+            </div>
+
+            <div class="edit-tabs">
+                <div class="edit-tab-btn active" data-tab="mods">Mods <span class="section-count edit-mods-count">0</span></div>
+                <div class="edit-tab-btn" data-tab="general">Paramètres de l'instance</div>
+            </div>
+
+            <!-- Onglet mods -->
+            <div class="edit-pane edit-pane-mods active">
+                <div class="mods-toolbar">
+                    <div class="mods-search-box">
+                        <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+                        <input type="text" class="mods-search" placeholder="Rechercher un mod..." spellcheck="false"/>
+                    </div>
+                    <div class="btn-small btn-ghost mods-open-folder">Ouvrir le dossier</div>
+                    <div class="btn-small mods-import">+ Importer des mods</div>
+                    <input type="file" class="mods-file" accept=".jar" multiple/>
+                </div>
+                <div class="mods-summary"></div>
+                <div class="mods-list"></div>
+                <div class="mods-drop-overlay">
+                    <div class="mods-drop-box">Déposez vos fichiers <b>.jar</b> pour les ajouter</div>
+                </div>
+            </div>
+
+            <!-- Onglet paramètres -->
+            <div class="edit-pane edit-pane-general">
+                <div class="edit-general">
+                    <div class="create-form edit-form">
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="field-label">Nom</label>
+                                <input type="text" class="field-input create-name" maxlength="32" spellcheck="false"/>
+                            </div>
+                            <div class="field">
+                                <label class="field-label">Couleur</label>
+                                <div class="color-swatches"></div>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="field-label-row">
+                                <label class="field-label">Version de Minecraft</label>
+                                <label class="toggle-small">
+                                    <input type="checkbox" class="create-snapshots"/>
+                                    <span>Snapshots</span>
+                                </label>
+                            </div>
+                            <select class="field-input create-mc-version"></select>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label">Mod loader</label>
+                            <div class="segmented create-loader">
+                                <div class="segment" data-loader="none">Vanilla</div>
+                                <div class="segment" data-loader="fabric">Fabric</div>
+                                <div class="segment" data-loader="quilt">Quilt</div>
+                                <div class="segment" data-loader="forge">Forge</div>
+                                <div class="segment" data-loader="neoforge">NeoForge</div>
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <div class="field create-loader-field">
+                                <label class="field-label">Version du loader</label>
+                                <select class="field-input create-loader-version"></select>
+                            </div>
+                            <div class="field create-fabricapi-field">
+                                <div class="field-label-row">
+                                    <label class="field-label">Fabric API</label>
+                                    <label class="toggle-small">
+                                        <input type="checkbox" class="create-fabricapi-enabled"/>
+                                        <span>Installer</span>
+                                    </label>
+                                </div>
+                                <select class="field-input create-fabricapi-version"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside class="edit-side">
+                        <div class="edit-note edit-version-note">
+                            Changer de version ou de loader peut rendre certains mods incompatibles. Ils seront signalés dans l'onglet Mods.
+                        </div>
+                        <div class="create-error"></div>
+                        <div class="btn btn-primary edit-save disabled">Enregistrer</div>
+                        <div class="edit-danger">
+                            <div class="edit-danger-title">Zone de danger</div>
+                            <div class="btn btn-danger-ghost edit-delete">Supprimer l'instance</div>
+                        </div>
+                    </aside>
+                </div>
             </div>
         </div>
     </div>

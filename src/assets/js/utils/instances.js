@@ -89,11 +89,11 @@ export function sanitizeName(name) {
     return (name || '').replace(FORBIDDEN_CHARS, '').replace(/\s+/g, ' ').trim().replace(/\.+$/, '').slice(0, 32);
 }
 
-export async function validateName(name, officialList) {
+export async function validateName(name, officialList, exceptName = null) {
     let clean = sanitizeName(name);
     if (clean.length < 2) return { error: 'Le nom doit contenir au moins 2 caractères.' };
     let lower = clean.toLowerCase();
-    let locals = await getLocalInstances();
+    let locals = (await getLocalInstances()).filter(i => i.name !== exceptName);
     if ([...officialList, ...locals].some(i => i.name.toLowerCase() === lower)) {
         return { error: 'Une instance porte déjà ce nom.' };
     }
@@ -120,6 +120,55 @@ export async function createLocalInstance(data) {
     list.push(instance);
     await saveLocalInstances(list);
     return { ...instance, local: true };
+}
+
+/**
+ * Modifie une instance locale. Un renommage déplace aussi son dossier (mondes partagés :
+ * seuls les liens sont déplacés). Un changement de version invalide le cache hors-ligne.
+ * Renvoie l'instance mise à jour.
+ */
+export async function updateLocalInstance(name, changes, gamePath) {
+    let list = await getLocalInstances();
+    let index = list.findIndex(i => i.name === name);
+    if (index < 0) throw new Error('Instance introuvable.');
+    let current = list[index];
+    let next = {
+        ...current,
+        ...changes,
+        loadder: { ...current.loadder, ...(changes.loadder || {}) }
+    };
+
+    let versionChanged = ['minecraft_version', 'loadder_type', 'loadder_version']
+        .some(key => next.loadder[key] !== current.loadder[key]);
+
+    if (gamePath) {
+        let oldDir = instanceFolder(gamePath, current);
+        let oldCache = launchCacheFile(gamePath, current);
+        if (next.name !== current.name) {
+            let newDir = instanceFolder(gamePath, next);
+            if (fs.existsSync(newDir)) throw new Error(`Un dossier "${next.name}" existe déjà dans les instances.`);
+            if (fs.existsSync(oldDir)) {
+                try {
+                    fs.renameSync(oldDir, newDir);
+                } catch (err) {
+                    throw new Error(`Impossible de renommer le dossier (le jeu est-il encore ouvert ?) : ${err.message}`);
+                }
+            }
+            if (fs.existsSync(oldCache) && !versionChanged) fs.renameSync(oldCache, launchCacheFile(gamePath, next));
+        }
+        // Le cache hors-ligne décrit l'ancienne version : on le supprime pour forcer un lancement en ligne.
+        if (versionChanged) fs.rmSync(oldCache, { force: true });
+
+        // Ancienne Fabric API retirée si elle a changé (la nouvelle est téléchargée au lancement).
+        let oldApi = current.fabricApi?.filename;
+        if (oldApi && oldApi !== next.fabricApi?.filename) {
+            fs.rmSync(`${instanceFolder(gamePath, next)}/mods/${oldApi}`, { force: true });
+        }
+    }
+
+    list[index] = next;
+    await saveLocalInstances(list);
+    return { ...next, local: true };
 }
 
 export async function deleteLocalInstance(name, gamePath, deleteFiles) {

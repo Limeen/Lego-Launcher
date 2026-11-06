@@ -6,35 +6,17 @@ import { config, database, logger, changePanel, setStatus, pkg, popup } from '..
 import OfflineLaunch from '../utils/launch.js'
 import { prepareSharedData, finishSharedData } from '../utils/shared.js'
 import {
-    LOADERS, INSTANCE_COLORS, getGamePath, getAllInstances, resolveInstanceSelection, isInstalled,
-    launchCacheFile, instanceFolder, validateName, createLocalInstance, deleteLocalInstance,
-    getMinecraftVersions, getLoaderVersions, getFabricApiVersions, ensureFabricApi, hasInternet
+    INSTANCE_COLORS, getGamePath, getAllInstances, resolveInstanceSelection, isInstalled,
+    launchCacheFile, instanceFolder, validateName, createLocalInstance, ensureFabricApi, hasInternet
 } from '../utils/instances.js'
+import InstanceForm, { escapeHTML, initials, loaderLabel } from '../utils/instanceForm.js'
+import InstanceEditor from './instanceEditor.js'
 
 const { shell, ipcRenderer } = require('electron')
 const fs = require('fs')
 
-const ICON_FOLDER = '<svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.38a1.5 1.5 0 0 1 1.06.44L11.5 7h8a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>'
-const ICON_TRASH = '<svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z"/></svg>'
 const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="M9.5 16.2 5.3 12l-1.4 1.4 5.6 5.6L20.1 8.4 18.7 7z"/></svg>'
-
-function escapeHTML(text) {
-    return String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
-}
-
-function initials(name) {
-    let words = String(name).trim().split(/\s+/).filter(Boolean)
-    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase()
-    return String(name).slice(0, 2).toUpperCase()
-}
-
-function loaderLabel(instance) {
-    let type = instance?.loadder?.loadder_type || 'none'
-    let label = LOADERS[type]?.label || type
-    let build = instance?.loadder?.loadder_version
-    if (type === 'none' || !build || build === 'latest') return label
-    return `${label} ${String(build).replace(`${instance.loadder.minecraft_version}-`, '')}`
-}
+const ICON_GEAR = '<svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>'
 
 /**
  * Barre de progression du lancement.
@@ -119,6 +101,10 @@ class Home {
         this.socialLick()
         this.bindInstanceUI()
         this.bindCreateUI()
+        this.editor = new InstanceEditor(this)
+        // Un fichier lâché hors d'une zone prévue ne doit pas ouvrir le fichier dans la fenêtre.
+        document.addEventListener('dragover', e => e.preventDefault())
+        document.addEventListener('drop', e => e.preventDefault())
         document.querySelector('.settings-btn').addEventListener('click', () => changePanel('settings'))
         window.addEventListener('venstone:account-changed', () => this.refreshInstances())
 
@@ -273,8 +259,7 @@ class Home {
 
         let actions = instance.local ? `
             <div class="instance-card-actions">
-                <div class="icon-btn instance-open-folder" title="Ouvrir le dossier">${ICON_FOLDER}</div>
-                <div class="icon-btn danger instance-delete" title="Supprimer">${ICON_TRASH}</div>
+                <div class="icon-btn instance-edit" title="Mods et paramètres de l'instance">${ICON_GEAR}</div>
             </div>` : ''
 
         card.innerHTML = `
@@ -321,14 +306,20 @@ class Home {
         createBTN.title = this.offline ? 'Connexion internet requise' : ''
     }
 
-    async selectInstance(name) {
+    async selectInstance(name, { silent = false } = {}) {
         let configClient = await this.db.readData('configClient')
         configClient.instance_selct = name
         await this.db.updateData('configClient', configClient)
+        if (silent) return
         let instance = this.instances.all.find(i => i.name === name)
         this.renderBottomBar(instance)
         this.renderInstanceLists(name)
         this.updateStatus(instance)
+    }
+
+    async openInstancePicker() {
+        this.openPopup('.instance-popup')
+        await this.refreshInstances()
     }
 
     openPopup(selector) {
@@ -346,10 +337,8 @@ class Home {
     bindInstanceUI() {
         let instancePopup = document.querySelector('.instance-popup')
 
-        document.querySelector('.instance-picker').addEventListener('click', async () => {
-            if (this.playing) return
-            this.openPopup('.instance-popup')
-            await this.refreshInstances()
+        document.querySelector('.instance-picker').addEventListener('click', () => {
+            if (!this.playing) this.openInstancePicker()
         })
 
         document.querySelector('.play-instance').addEventListener('click', () => {
@@ -369,12 +358,11 @@ class Home {
             let instance = this.instances.all.find(i => i.name === name)
             if (!instance) return
 
-            if (e.target.closest('.instance-open-folder')) {
-                let folder = instanceFolder(this.gamePath, instance)
-                fs.mkdirSync(folder, { recursive: true })
-                return shell.openPath(folder)
+            if (e.target.closest('.instance-edit')) {
+                if (this.playing) return this.showError("Fermez le jeu avant de modifier l'instance.")
+                this.closePopup('.instance-popup')
+                return this.editor.open(instance)
             }
-            if (e.target.closest('.instance-delete')) return this.askDelete(instance)
             if (card.classList.contains('unavailable')) return
 
             await this.selectInstance(name)
@@ -387,30 +375,6 @@ class Home {
             this.openCreate()
         })
 
-        // Confirmation de suppression
-        let confirm = document.querySelector('.confirm-delete')
-        confirm.querySelector('.confirm-delete-cancel').addEventListener('click', () => confirm.style.display = 'none')
-        confirm.querySelector('.confirm-delete-ok').addEventListener('click', async () => {
-            let instance = this.pendingDelete
-            confirm.style.display = 'none'
-            if (!instance) return
-            try {
-                await deleteLocalInstance(instance.name, this.gamePath, confirm.querySelector('.confirm-delete-files').checked)
-            } catch (err) {
-                console.error(err)
-                new popup().openPopup({ title: 'Erreur', content: `Suppression impossible : ${escapeHTML(err.message)}`, color: 'red', options: true })
-            }
-            this.pendingDelete = null
-            await this.refreshInstances()
-        })
-    }
-
-    askDelete(instance) {
-        this.pendingDelete = instance
-        let confirm = document.querySelector('.confirm-delete')
-        confirm.querySelector('.confirm-delete-text').innerHTML = `L'instance <b>${escapeHTML(instance.name)}</b> sera retirée du launcher.`
-        confirm.querySelector('.confirm-delete-files').checked = false
-        confirm.style.display = 'flex'
     }
 
     /* ------------------------------------------------------------------ */
@@ -419,212 +383,36 @@ class Home {
 
     bindCreateUI() {
         let root = document.querySelector('.create-popup')
-        this.create = {
-            root,
-            name: root.querySelector('.create-name'),
-            swatches: root.querySelector('.color-swatches'),
-            mcVersion: root.querySelector('.create-mc-version'),
-            snapshots: root.querySelector('.create-snapshots'),
-            loader: root.querySelector('.create-loader'),
-            loaderField: root.querySelector('.create-loader-field'),
-            loaderVersion: root.querySelector('.create-loader-version'),
-            apiField: root.querySelector('.create-fabricapi-field'),
-            apiEnabled: root.querySelector('.create-fabricapi-enabled'),
-            apiVersion: root.querySelector('.create-fabricapi-version'),
-            error: root.querySelector('.create-error'),
-            submit: root.querySelector('.create-submit'),
-            state: { loader: 'none', color: INSTANCE_COLORS[0], loaderVersions: [], apiVersions: [] },
-            requestId: 0
-        }
-        let c = this.create
-
-        c.swatches.innerHTML = INSTANCE_COLORS.map(color => `<div class="swatch" data-color="${color}" style="background:${color}"></div>`).join('')
-        c.swatches.addEventListener('click', e => {
-            let swatch = e.target.closest('.swatch')
-            if (!swatch) return
-            c.state.color = swatch.dataset.color
-            this.updateCreateUI()
+        this.createForm = new InstanceForm(root, {
+            onChange: () => root.querySelector('.create-submit').classList.toggle('disabled', !this.createForm.ready())
         })
-
-        c.loader.addEventListener('click', e => {
-            let segment = e.target.closest('.segment')
-            if (!segment || segment.classList.contains('active')) return
-            c.state.loader = segment.dataset.loader
-            this.updateCreateUI()
-            this.loadLoaderVersions()
-        })
-
-        c.name.addEventListener('input', () => { c.error.textContent = ''; this.updateCreateUI() })
-        c.snapshots.addEventListener('change', () => this.fillMinecraftVersions())
-        c.mcVersion.addEventListener('change', () => { this.updateCreateUI(); this.loadLoaderVersions() })
-        c.loaderVersion.addEventListener('change', () => this.updateCreateUI())
-        c.apiVersion.addEventListener('change', () => this.updateCreateUI())
-        c.apiEnabled.addEventListener('change', () => this.updateCreateUI())
-
         let close = () => this.closePopup('.create-popup')
         root.querySelector('.create-close').addEventListener('click', close)
-        root.querySelector('.create-back').addEventListener('click', () => { close(); this.openPopup('.instance-popup') })
+        root.querySelector('.create-back').addEventListener('click', () => { close(); this.openInstancePicker() })
         root.addEventListener('mousedown', e => { if (e.target === root) close() })
-        c.name.addEventListener('keydown', e => { if (e.key === 'Enter') this.submitCreate() })
-        c.submit.addEventListener('click', () => this.submitCreate())
+        root.querySelector('.create-name').addEventListener('keydown', e => { if (e.key === 'Enter') this.submitCreate() })
+        root.querySelector('.create-submit').addEventListener('click', () => this.submitCreate())
     }
 
     async openCreate() {
-        let c = this.create
-        c.name.value = ''
-        c.error.textContent = ''
-        c.state.loader = 'none'
-        c.state.color = INSTANCE_COLORS[Math.floor(Math.random() * INSTANCE_COLORS.length)]
-        c.snapshots.checked = false
-        c.apiEnabled.checked = true
+        this.createForm.reset({ color: INSTANCE_COLORS[Math.floor(Math.random() * INSTANCE_COLORS.length)] })
         this.openPopup('.create-popup')
-        this.updateCreateUI()
-        setTimeout(() => c.name.focus(), 50)
-        await this.fillMinecraftVersions()
-    }
-
-    setSelectLoading(select, text) {
-        select.innerHTML = `<option value="">${text}</option>`
-        select.disabled = true
-    }
-
-    async fillMinecraftVersions() {
-        let c = this.create
-        let previous = c.mcVersion.value
-        this.setSelectLoading(c.mcVersion, 'Chargement des versions...')
-        try {
-            let { versions, latest } = await getMinecraftVersions()
-            let list = versions.filter(v => v.type === 'release' || (c.snapshots.checked && v.type === 'snapshot'))
-            c.mcVersion.innerHTML = list.map(v => {
-                let tag = v.id === latest.release ? ' (dernière)' : v.type === 'snapshot' ? ' (snapshot)' : ''
-                return `<option value="${escapeHTML(v.id)}">${escapeHTML(v.id)}${tag}</option>`
-            }).join('')
-            c.mcVersion.disabled = false
-            c.mcVersion.value = list.some(v => v.id === previous) ? previous : latest.release
-        } catch (err) {
-            console.error(err)
-            this.setSelectLoading(c.mcVersion, 'Impossible de charger les versions')
-            c.error.textContent = 'Connexion aux serveurs Mojang impossible.'
-        }
-        this.updateCreateUI()
-        await this.loadLoaderVersions()
-    }
-
-    async loadLoaderVersions() {
-        let c = this.create
-        let loader = c.state.loader
-        let mc = c.mcVersion.value
-        let requestId = ++c.requestId
-        c.state.loaderVersions = []
-        c.state.apiVersions = []
-
-        if (loader === 'none' || !mc) {
-            this.updateCreateUI()
-            return
-        }
-
-        this.setSelectLoading(c.loaderVersion, 'Chargement...')
-        let withApi = loader === 'fabric' || loader === 'quilt'
-        if (withApi) this.setSelectLoading(c.apiVersion, 'Chargement...')
-        this.updateCreateUI()
-
-        let [loaders, apis] = await Promise.all([
-            getLoaderVersions(loader, mc).catch(err => { console.error(err); return null }),
-            withApi ? getFabricApiVersions(mc).catch(err => { console.error(err); return null }) : Promise.resolve([])
-        ])
-        if (requestId !== c.requestId) return // une autre requête a pris le relais
-
-        if (loaders === null) {
-            this.setSelectLoading(c.loaderVersion, 'Erreur de chargement')
-        } else if (!loaders.length) {
-            this.setSelectLoading(c.loaderVersion, `${LOADERS[loader].label} n'est pas disponible pour ${mc}`)
-        } else {
-            c.state.loaderVersions = loaders
-            let recommended = loaders.find(l => l.stable) || loaders[0]
-            c.loaderVersion.innerHTML = loaders.map(l => {
-                let tag = l === recommended ? ' (recommandée)' : !l.stable ? ' (bêta)' : ''
-                return `<option value="${escapeHTML(l.version)}">${escapeHTML(l.label || l.version)}${tag}</option>`
-            }).join('')
-            c.loaderVersion.value = recommended.version
-            c.loaderVersion.disabled = false
-        }
-
-        if (withApi) {
-            if (apis === null) this.setSelectLoading(c.apiVersion, 'Erreur de chargement')
-            else if (!apis.length) this.setSelectLoading(c.apiVersion, `Aucune version pour ${mc}`)
-            else {
-                c.state.apiVersions = apis
-                c.apiVersion.innerHTML = apis.map((v, i) => `<option value="${i}">${escapeHTML(v.version)}${i === 0 ? ' (dernière)' : ''}</option>`).join('')
-                c.apiVersion.value = '0'
-                c.apiVersion.disabled = false
-            }
-        }
-        this.updateCreateUI()
-    }
-
-    createFormData() {
-        let c = this.create
-        let loader = c.state.loader
-        let withApi = (loader === 'fabric' || loader === 'quilt') && c.apiEnabled.checked
-        let api = withApi ? c.state.apiVersions[Number(c.apiVersion.value)] : null
-        return {
-            name: c.name.value.trim(),
-            color: c.state.color,
-            minecraft_version: c.mcVersion.value,
-            loadder_type: loader,
-            loadder_version: loader === 'none' ? 'latest' : c.loaderVersion.value,
-            fabricApi: api ? { version: api.version, url: api.url, filename: api.filename, sha1: api.sha1 } : null
-        }
-    }
-
-    createFormReady() {
-        let c = this.create
-        let data = this.createFormData()
-        if (!data.name || !data.minecraft_version || c.mcVersion.disabled) return false
-        if (data.loadder_type !== 'none' && (!data.loadder_version || c.loaderVersion.disabled)) return false
-        return true
-    }
-
-    updateCreateUI() {
-        let c = this.create
-        let { loader, color } = c.state
-        let data = this.createFormData()
-
-        c.loader.querySelectorAll('.segment').forEach(s => s.classList.toggle('active', s.dataset.loader === loader))
-        c.swatches.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color === color))
-        c.loaderField.style.display = loader === 'none' ? 'none' : ''
-        c.apiField.style.display = loader === 'fabric' || loader === 'quilt' ? '' : 'none'
-        c.apiVersion.classList.toggle('dimmed', !c.apiEnabled.checked)
-
-        // Aperçu
-        let previewName = data.name || 'Mon instance'
-        let icon = c.root.querySelector('.preview-icon')
-        icon.style.background = color
-        icon.textContent = initials(previewName)
-        c.root.querySelector('.preview-name').textContent = previewName
-
-        let chips = [`<span class="loader-badge loader-${loader}">${escapeHTML(loaderLabel({ loadder: { loadder_type: loader, loadder_version: loader === 'none' ? null : c.loaderVersion.disabled ? null : data.loadder_version, minecraft_version: data.minecraft_version } }))}</span>`]
-        if (data.minecraft_version) chips.push(`<span class="chip">Minecraft ${escapeHTML(data.minecraft_version)}</span>`)
-        if (data.fabricApi) chips.push(`<span class="chip">Fabric API ${escapeHTML(data.fabricApi.version.split('+')[0])}</span>`)
-        c.root.querySelector('.preview-chips').innerHTML = chips.join('')
-
-        c.submit.classList.toggle('disabled', !this.createFormReady())
+        setTimeout(() => document.querySelector('.create-popup .create-name').focus(), 50)
+        await this.createForm.fillMinecraftVersions()
     }
 
     async submitCreate() {
-        let c = this.create
-        if (c.submit.classList.contains('disabled') || c.busy) return
-        let data = this.createFormData()
+        let form = this.createForm
+        let submit = document.querySelector('.create-popup .create-submit')
+        if (submit.classList.contains('disabled') || this.creating) return
+        let data = form.data()
 
         let check = await validateName(data.name, this.instances.official)
-        if (check.error) {
-            c.error.textContent = check.error
-            return
-        }
+        if (check.error) return form.setError(check.error)
         data.name = check.name
 
-        c.busy = true
-        c.submit.classList.add('disabled')
+        this.creating = true
+        submit.classList.add('disabled')
         try {
             let instance = await createLocalInstance(data)
             await this.refreshInstances()
@@ -632,10 +420,10 @@ class Home {
             this.closePopup('.create-popup')
         } catch (err) {
             console.error(err)
-            c.error.textContent = `Création impossible : ${err.message}`
+            form.setError(`Création impossible : ${err.message}`)
         } finally {
-            c.busy = false
-            this.updateCreateUI()
+            this.creating = false
+            form.update()
         }
     }
 
