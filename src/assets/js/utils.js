@@ -44,9 +44,12 @@ async function setBackground(theme) {
 }
 
 async function changePanel(id) {
-    let panel = document.querySelector(`.${id}`);
-    let active = document.querySelector(`.active`)
-    if (active) active.classList.toggle("active");
+    // On ne cible que les panneaux : d'autres éléments utilisent aussi la classe "active"
+    // (loader sélectionné, préréglage de résolution...), et retirer la classe au mauvais
+    // élément laissait deux panneaux affichés en même temps.
+    let panel = document.querySelector(`.panel.${id}`);
+    if (!panel) return;
+    document.querySelectorAll('.panel.active').forEach(active => active.classList.remove("active"));
     panel.classList.add("active");
 }
 

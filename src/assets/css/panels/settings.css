@@ -91,7 +91,9 @@
     fill: #5aa0ff;
 }
 
+/* Texte centré dans le bouton, flèche calée à gauche (elle ne décale plus le texte) */
 .nav-back {
+    position: relative;
     margin-top: auto;
     justify-content: center;
     background: #292929;
@@ -756,4 +758,11 @@
     background: #2379ee1f;
     border-color: #5aa0ff;
     color: #ffffff;
+}
+
+.nav-back svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
 }
