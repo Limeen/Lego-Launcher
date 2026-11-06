@@ -40,7 +40,7 @@ function loaderLabel(instance) {
  * Barre de progression du lancement.
  * - set()           : progression réelle (téléchargement / vérification), animée en douceur.
  * - indeterminate() : phases où la lib n'envoie rien (vérification des fichiers, installation du
- *                     loader...) : animation continue + temps écoulé, la barre ne paraît jamais figée.
+ *                     loader...) : animation continue, la barre ne paraît jamais figée.
  * Si plus aucun événement n'arrive après une progression, on repasse en indéterminé.
  */
 class LaunchProgress {
@@ -67,13 +67,7 @@ class LaunchProgress {
         this.bar.style.display = ''
         this.bar.classList.add('indeterminate')
         this.fill.style.width = ''
-        let start = Date.now()
-        let render = () => {
-            let elapsed = Math.floor((Date.now() - start) / 1000)
-            this.setLabel(elapsed >= 3 ? `${text} <span class="progress-elapsed">${elapsed} s</span>` : text)
-        }
-        render()
-        this.timer = setInterval(render, 1000)
+        this.setLabel(text)
     }
 
     set(value, size, text) {
@@ -693,6 +687,9 @@ class Home {
 
         let launch = new OfflineLaunch({ cacheFile: launchCacheFile(this.gamePath, instance), offline: !online })
         let loaderType = instance.loadder?.loadder_type || 'none'
+        // Arguments JVM saisis dans les paramètres (séparés par des espaces, guillemets acceptés).
+        let userJvmArgs = (String(configClient.java_config.jvm_args || '').match(/"[^"]*"|\S+/g) || [])
+            .map(arg => arg.replace(/^"(.*)"$/, '$1'))
 
         let opt = {
             url: instance.official ? instance.url : null,
@@ -718,8 +715,8 @@ class Home {
                 path: configClient.java_config.java_path,
             },
 
-            JVM_ARGS: instance.jvm_args ? instance.jvm_args : [],
-            GAME_ARGS: instance.game_args ? instance.game_args : [],
+            JVM_ARGS: [...(instance.jvm_args || []), ...userJvmArgs],
+            GAME_ARGS: [...(instance.game_args || []), ...(configClient.game_config.fullscreen ? ['--fullscreen'] : [])],
 
             screen: {
                 width: configClient.game_config.screen_size.width,

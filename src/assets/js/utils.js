@@ -58,14 +58,16 @@ async function addAccount(data) {
     let div = document.createElement("div");
     div.classList.add("account");
     div.id = data.ID;
+    let name = String(data.name).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    let type = data?.meta?.type === 'Xbox' ? 'Compte Microsoft' : 'Compte Venstone';
     div.innerHTML = `
-        <div class="profile-image" style="background-image: url(https://venstone.xyz/skins/?pseudo=${data.name});"></div>
+        <div class="profile-image" style="background-image: url(https://venstone.xyz/skins/?pseudo=${encodeURIComponent(data.name)}), url(assets/images/default/steve.png);"></div>
         <div class="profile-infos">
-            <div class="profile-pseudo">${data.name}</div>
-            <div class="profile-uuid">${data.uuid}</div>
+            <div class="profile-pseudo">${name}</div>
+            <div class="profile-uuid"><span class="profile-active">Actif</span>${type}</div>
         </div>
-        <div class="delete-profile" id="${data.ID}">
-            <div class="icon-account-delete delete-profile-icon"></div>
+        <div class="delete-profile" id="${data.ID}" title="Supprimer ce compte">
+            <svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z"/></svg>
         </div>
     `
     return document.querySelector('.accounts-list').appendChild(div);
