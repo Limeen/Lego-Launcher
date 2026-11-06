@@ -7,7 +7,6 @@ node-v*
 data
 .DS_Store
 AppData
-README.md
 /docs
 .github/FUNDING.yml
 .github/ISSUE_TEMPLATE/bug_report.yml

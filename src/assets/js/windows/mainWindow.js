@@ -10,16 +10,19 @@ const pkg = require("../../../../package.json");
 let dev = process.env.DEV_TOOL === 'open';
 let mainWindow = undefined;
 
+/** @returns {BrowserWindow|undefined} Fenêtre principale */
 function getWindow() {
     return mainWindow;
 }
 
+/** Ferme l'application si la fenêtre principale existe. */
 function destroyWindow() {
     if (!mainWindow) return;
     app.quit();
     mainWindow = undefined;
 }
 
+/** Crée la fenêtre principale (980×552, sans cadre). Les liens externes s'ouvrent dans le navigateur. */
 function createWindow() {
     destroyWindow();
     mainWindow = new BrowserWindow({

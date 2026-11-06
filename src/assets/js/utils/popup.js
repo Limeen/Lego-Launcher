@@ -14,6 +14,11 @@ export default class popup {
         this.popupButton = document.querySelector('.popup-button');
     }
 
+    /**
+     * Affiche la popup globale.
+     * @param {{title: string, content: string, color?: string, options?: boolean, exit?: boolean, background?: boolean}} info
+     * `options` affiche le bouton OK, `exit` ferme le launcher au clic.
+     */
     openPopup(info) {
         this.popup.style.display = 'flex';
         if (info.background == false) this.popup.style.background = 'none';
@@ -32,6 +37,7 @@ export default class popup {
         }
     }
 
+    /** Masque et vide la popup globale. */
     closePopup() {
         this.popup.style.display = 'none';
         this.popupTitle.innerHTML = '';

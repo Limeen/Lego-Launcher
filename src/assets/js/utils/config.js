@@ -30,6 +30,11 @@ let basePromise = null;
 let configPromise = null;
 let cacheDirPromise = null;
 
+/**
+ * Détermine (une fois par session) quel serveur de l'API répond : principal, secours,
+ * ou aucun (mode hors-ligne).
+ * @returns {Promise<string|null>}
+ */
 function resolveBaseUrl() {
     if (!basePromise) {
         basePromise = (async () => {
@@ -49,6 +54,10 @@ function resolveBaseUrl() {
     return basePromise;
 }
 
+/**
+ * Dossier du cache de l'API (`<userData>/launcher-api-cache`).
+ * @returns {Promise<string>}
+ */
 async function cacheDir() {
     if (!cacheDirPromise) {
         cacheDirPromise = ipcRenderer.invoke('path-user-data').then(dir => {
@@ -61,6 +70,11 @@ async function cacheDir() {
     return cacheDirPromise;
 }
 
+/**
+ * Lit une réponse de l'API mise en cache.
+ * @param {string} name Nom de la ressource (config, instances, news)
+ * @returns {Promise<any|null>}
+ */
 async function readCache(name) {
     try {
         let file = path.join(await cacheDir(), `${name}.json`);
@@ -72,6 +86,11 @@ async function readCache(name) {
     }
 }
 
+/**
+ * Enregistre une réponse de l'API dans le cache (écriture atomique).
+ * @param {string} name Nom de la ressource
+ * @param {any} data
+ */
 async function writeCache(name, data) {
     try {
         let file = path.join(await cacheDir(), `${name}.json`);
@@ -82,6 +101,11 @@ async function writeCache(name, data) {
     }
 }
 
+/**
+ * Télécharge un JSON avec délai d'expiration ; lève une erreur si le statut n'est pas 200.
+ * @param {string} url
+ * @returns {Promise<any>}
+ */
 async function fetchJson(url) {
     let res = await nodeFetch(url, { timeout: TIMEOUT });
     if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
@@ -141,6 +165,10 @@ class Config {
         return instancesList;
     }
 
+    /**
+     * Actualités du launcher (JSON ou flux RSS), avec repli sur le cache.
+     * @returns {Promise<Array<{title: string, content: string, author: string, publish_date: string}>>}
+     */
     async getNews() {
         let base = await resolveBaseUrl();
         let config = await this.GetConfig();
@@ -159,6 +187,11 @@ class Config {
         throw { error: { code: 'offline', message: 'server not accessible' } };
     }
 
+    /**
+     * Convertit un flux RSS en liste d'actualités.
+     * @param {string} url
+     * @returns {Promise<Array>}
+     */
     async fetchRss(url) {
         let res = await nodeFetch(url, { timeout: TIMEOUT });
         if (res.status !== 200) throw new Error(res.statusText);

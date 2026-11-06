@@ -25,6 +25,7 @@ function openSource(input) {
     let size = fs.fstatSync(fd).size;
     return {
         size,
+        /** Lit `len` octets à la position `pos`. */
         read(pos, len) {
             let buf = Buffer.alloc(len);
             let n = fs.readSync(fd, buf, 0, len, pos);
@@ -84,6 +85,11 @@ function readZipEntries(input, wanted) {
 /* Versions                                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Version numérique (« 1.21.8 » → [1, 21, 8]) ; null pour un snapshot ou un format inconnu.
+ * @param {string} v
+ * @returns {number[]|null}
+ */
 function parseVersion(v) {
     if (v === undefined || v === null) return null;
     let clean = String(v).trim().replace(/^v/i, '').split(/[-+]/)[0];
@@ -91,6 +97,10 @@ function parseVersion(v) {
     return clean.split('.').map(Number);
 }
 
+/**
+ * Compare deux versions numériques.
+ * @returns {number} < 0, 0 ou > 0
+ */
 function compare(a, b) {
     for (let i = 0; i < Math.max(a.length, b.length); i++) {
         let d = (a[i] || 0) - (b[i] || 0);
@@ -106,6 +116,7 @@ function all(results) {
     return true;
 }
 
+/** Combine des résultats tri-état (true / false / null = inconnu) en OU logique. */
 function any(results) {
     if (results.some(r => r === true)) return true;
     if (results.some(r => r === null)) return null;
@@ -199,6 +210,10 @@ function matchMavenRange(range, version) {
 
 const IGNORED_DEPENDENCIES = new Set(['minecraft', 'java', 'fabricloader', 'fabric-loader', 'quilt_loader', 'quilted_fabric_api', 'forge', 'neoforge', 'javafml', 'lowcodefml']);
 
+/**
+ * Décode un JSON de mod, en tolérant les retours à la ligne bruts dans les chaînes.
+ * @param {Buffer} buffer
+ */
 function parseJson(buffer) {
     let text = buffer.toString('utf8').replace(/^﻿/, '');
     try {
@@ -251,6 +266,12 @@ function parseModsToml(text) {
     return root;
 }
 
+/**
+ * Icône d'un mod en data URL (ignorée au-delà de 300 Ko).
+ * @param {Map<string, Buffer>} entries Entrées lues dans le jar
+ * @param {string} iconPath
+ * @returns {string|null}
+ */
 function pickIcon(entries, iconPath) {
     if (!iconPath) return null;
     let data = entries.get(iconPath.replace(/^\//, ''));
@@ -260,6 +281,10 @@ function pickIcon(entries, iconPath) {
     return `data:${mime};base64,${data.toString('base64')}`;
 }
 
+/**
+ * Chemin de l'icône déclarée par un mod Fabric/Quilt (chaîne ou tailles multiples).
+ * @returns {string|null}
+ */
 function fabricIconPath(icon) {
     if (!icon) return null;
     if (typeof icon === 'string') return icon;
@@ -268,6 +293,10 @@ function fabricIconPath(icon) {
     return icon[best];
 }
 
+/**
+ * Normalise les dépendances (objet Fabric ou tableau Quilt) en `{id, versions}`.
+ * @returns {Array<{id: string, versions: any}>}
+ */
 function normalizeDepends(depends) {
     if (!depends) return [];
     if (Array.isArray(depends)) {
@@ -292,6 +321,10 @@ function nestedProvides(entries) {
     return ids.filter(Boolean);
 }
 
+/**
+ * Métadonnées d'un mod Fabric ou Quilt.
+ * @param {Map<string, Buffer>} entries
+ */
 function readFabricLike(entries, file) {
     let fabric = entries.get('fabric.mod.json');
     let quilt = entries.get('quilt.mod.json');
@@ -333,6 +366,11 @@ function readFabricLike(entries, file) {
     };
 }
 
+/**
+ * Métadonnées d'un mod Forge ou NeoForge.
+ * @param {Map<string, Buffer>} entries
+ * @param {"forge"|"neoforge"} loader
+ */
 function readForgeLike(entries, loader) {
     let toml = parseModsToml(entries.get(loader === 'neoforge' ? 'META-INF/neoforge.mods.toml' : 'META-INF/mods.toml').toString('utf8'));
     let mod = toml.mods[0] || {};
@@ -402,6 +440,12 @@ export function readModInfo(file) {
 const LOADER_NAMES = { none: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
 const DEPENDENCY_NAMES = { 'fabric-api': 'Fabric API', fabric: 'Fabric API', 'cloth-config': 'Cloth Config', cloth_config: 'Cloth Config', architectury: 'Architectury API', yet_another_config_lib_v3: 'YACL', yacl: 'YACL', modmenu: 'Mod Menu', geckolib: 'GeckoLib', 'owo': 'oωo-lib', kotlinforforge: 'Kotlin for Forge', fabric_language_kotlin: 'Fabric Language Kotlin', sodium: 'Sodium', iris: 'Iris', indium: 'Indium', 'cloth-config2': 'Cloth Config', konkrete: 'Konkrete', melody: 'Melody', placeholder_api: 'Placeholder API', 'placeholder-api': 'Placeholder API', balm: 'Balm', 'forgeconfigapiport': 'Forge Config API Port', puzzleslib: 'Puzzles Lib', resourcefullib: 'Resourceful Lib' };
 
+/**
+ * Formats de mods qu'un loader sait charger (Quilt charge aussi les mods Fabric).
+ * @param {string} instanceLoader
+ * @param {string} mc Version de Minecraft
+ * @returns {string[]}
+ */
 function acceptedLoaders(instanceLoader, mc) {
     switch (instanceLoader) {
         case 'fabric': return ['fabric'];
@@ -436,6 +480,11 @@ function versionLabel(range, syntax) {
     return text.replace(/^>=\s*(.+)$/, '$1 ou plus récent').replace(/-.*$/, '');
 }
 
+/**
+ * Nom lisible d'une dépendance (« fabric-api » → « Fabric API »).
+ * @param {string} id
+ * @returns {string}
+ */
 export function dependencyName(id) {
     return DEPENDENCY_NAMES[id] || id;
 }
@@ -490,6 +539,11 @@ export function checkCompatibility(info, instance, installed = []) {
 /* Fichiers                                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Dossier des mods d'une instance.
+ * @param {string} instanceDir
+ * @returns {string}
+ */
 export function modsFolder(instanceDir) {
     return `${instanceDir}/mods`;
 }
@@ -509,6 +563,13 @@ export function listMods(instanceDir) {
     return mods.sort((a, b) => String(a.info?.name || a.file).localeCompare(String(b.info?.name || b.file), 'fr', { sensitivity: 'base' }));
 }
 
+/**
+ * Active ou désactive un mod (renommage en `.jar.disabled`).
+ * @param {string} instanceDir
+ * @param {string} file Nom du fichier actuel
+ * @param {boolean} enabled
+ * @returns {string} Nouveau nom du fichier
+ */
 export function setModEnabled(instanceDir, file, enabled) {
     let dir = modsFolder(instanceDir);
     let base = file.replace(/\.disabled$/i, '');
@@ -520,6 +581,12 @@ export function setModEnabled(instanceDir, file, enabled) {
     return path.basename(to);
 }
 
+/**
+ * Copie un .jar dans le dossier des mods.
+ * @param {string} instanceDir
+ * @param {string} source Chemin du fichier à importer
+ * @returns {string} Nom du fichier copié
+ */
 export function importMod(instanceDir, source) {
     let dir = modsFolder(instanceDir);
     fs.mkdirSync(dir, { recursive: true });
@@ -528,6 +595,11 @@ export function importMod(instanceDir, source) {
     return path.basename(target);
 }
 
+/**
+ * Supprime un mod.
+ * @param {string} instanceDir
+ * @param {string} file
+ */
 export function deleteMod(instanceDir, file) {
     fs.rmSync(`${modsFolder(instanceDir)}/${file}`, { force: true });
 }

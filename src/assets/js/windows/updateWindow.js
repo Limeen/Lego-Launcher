@@ -10,16 +10,19 @@ const os = require("os");
 let dev = process.env.DEV_TOOL === 'open';
 let updateWindow = undefined;
 
+/** @returns {BrowserWindow|undefined} Fenêtre de mise à jour */
 function getWindow() {
     return updateWindow;
 }
 
+/** Ferme la fenêtre de mise à jour. */
 function destroyWindow() {
     if (!updateWindow) return;
     updateWindow.close();
     updateWindow = undefined;
 }
 
+/** Crée la fenêtre de mise à jour (splash). */
 function createWindow() {
     destroyWindow();
     updateWindow = new BrowserWindow({

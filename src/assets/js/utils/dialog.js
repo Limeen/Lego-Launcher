@@ -11,6 +11,10 @@ import { escapeHTML } from './instanceForm.js';
 
 let current = null;
 
+/**
+ * Crée (une fois) l'élément de la boîte de confirmation.
+ * @returns {HTMLElement}
+ */
 function element() {
     let root = document.querySelector('.confirm-dialog');
     if (root) return root;
@@ -36,6 +40,18 @@ function element() {
     return root;
 }
 
+/**
+ * Affiche une boîte de confirmation et attend la réponse du joueur.
+ * Entrée = confirmer, Échap ou clic à côté = annuler.
+ * @param {object} options
+ * @param {string} options.title
+ * @param {string} [options.html] Contenu (HTML déjà échappé)
+ * @param {string} [options.confirmText]
+ * @param {string} [options.cancelText]
+ * @param {boolean} [options.danger] Bouton rouge
+ * @param {string} [options.checkbox] Libellé d'une case à cocher optionnelle
+ * @returns {Promise<{confirmed: boolean, checked: boolean}>}
+ */
 export function confirmDialog({ title, html = '', confirmText = 'Confirmer', cancelText = 'Annuler', danger = false, checkbox = null, icon = danger ? '!' : '?' }) {
     if (current) current(false);
     let root = element();
@@ -75,6 +91,11 @@ export function confirmDialog({ title, html = '', confirmText = 'Confirmer', can
     });
 }
 
+/**
+ * Liste HTML (échappée) de raisons, pour le contenu d'une boîte de confirmation.
+ * @param {string[]} items
+ * @returns {string}
+ */
 export function reasonsList(items) {
     return `<ul class="confirm-dialog-list">${items.map(i => `<li>${escapeHTML(i)}</li>`).join('')}</ul>`;
 }

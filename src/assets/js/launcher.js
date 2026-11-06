@@ -17,6 +17,10 @@ const fs = require('fs');
 const os = require('os');
 
 class Launcher {
+    /**
+     * Point d'entrée de la fenêtre principale : config (en ligne ou en cache), base locale,
+     * panneaux, puis chargement des comptes.
+     */
     async init() {
         this.initLog();
         console.log('Initializing Launcher...');
@@ -31,6 +35,7 @@ class Launcher {
         this.startLauncher();
     }
 
+    /** Raccourcis des outils de développement (Ctrl+Shift+I, F12) et logger de la console. */
     initLog() {
         document.addEventListener('keydown', e => {
             if (e.ctrlKey && e.shiftKey && e.keyCode == 73 || e.keyCode == 123) {
@@ -41,6 +46,7 @@ class Launcher {
         new logger(pkg.name, '#7289da')
     }
 
+    /** Ctrl+W ferme le launcher. */
     shortcut() {
         document.addEventListener('keydown', e => {
             if (e.ctrlKey && e.keyCode == 87) {
@@ -50,6 +56,7 @@ class Launcher {
     }
 
 
+    /** Affiche la barre de titre adaptée à l'OS et branche ses boutons. */
     initFrame() {
         console.log('Initializing Frame...')
         const platform = os.platform() === 'darwin' ? "darwin" : "other";
@@ -75,6 +82,7 @@ class Launcher {
         })
     }
 
+    /** Crée la configuration du joueur avec les valeurs par défaut au premier démarrage. */
     async initConfigClient() {
         console.log('Initializing Config Client...')
         let configClient = await this.db.readData('configClient')
@@ -106,6 +114,10 @@ class Launcher {
         }
     }
 
+    /**
+     * Injecte le HTML de chaque panneau puis l'initialise.
+     * @param {...Function} panels Classes de panneaux (avec une propriété statique `id`)
+     */
     createPanels(...panels) {
         let panelsElem = document.querySelector('.panels')
         for (let panel of panels) {
@@ -118,6 +130,10 @@ class Launcher {
         }
     }
 
+    /**
+     * Charge et rafraîchit les comptes enregistrés puis ouvre l'accueil (ou la connexion
+     * s'il n'y a aucun compte). Hors-ligne, les comptes sont gardés tels quels.
+     */
     async startLauncher() {
         let accounts = await this.db.readAllData('accounts')
         let configClient = await this.db.readData('configClient')

@@ -28,6 +28,7 @@ class Splash {
         });
     }
 
+    /** Joue l'animation du splash puis lance la recherche de mise à jour. */
     async startAnimation() {
         let splashes = [
             { "message": "Bienvenue", "author": "" }
@@ -48,6 +49,10 @@ class Splash {
         this.checkUpdate();
     }
 
+    /**
+     * Recherche une mise à jour du launcher.
+     * En cas d'échec (hors-ligne, serveur injoignable) le démarrage continue normalement.
+     */
     async checkUpdate() {
         this.setStatus(`Recherche de mise à jour...`);
 
@@ -94,6 +99,13 @@ class Splash {
         })
     }
 
+    /**
+     * Choisit, parmi les fichiers d'une release GitHub, le plus récent pour un OS et un format.
+     * @param {string} os Fragment du nom de fichier (ex. "mac", "linux")
+     * @param {string} preferredFormat Extension attendue (ex. ".dmg")
+     * @param {Array} asset Fichiers de la release
+     * @returns {object|undefined}
+     */
     getLatestReleaseForOS(os, preferredFormat, asset) {
         return asset.filter(asset => {
             const name = asset.name.toLowerCase();
@@ -103,6 +115,10 @@ class Splash {
         }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
     }
 
+    /**
+     * macOS / Linux : propose le téléchargement manuel de la mise à jour.
+     * En cas d'erreur, le launcher démarre quand même.
+     */
     async dowloadUpdate() {
         try {
             await this.findUpdateDownload();
@@ -112,6 +128,10 @@ class Splash {
         }
     }
 
+    /**
+     * Trouve le fichier de mise à jour adapté à l'OS dans la dernière release GitHub
+     * et affiche le bouton « Télécharger ».
+     */
     async findUpdateDownload() {
         const repoURL = pkg.repository.url.replace("git+", "").replace(".git", "").replace("https://github.com/", "").split("/");
         const githubAPI = await nodeFetch('https://api.github.com').then(res => res.json()).catch(err => err);
@@ -137,6 +157,7 @@ class Splash {
     }
 
 
+    /** Vérifie le mode maintenance de l'API puis ouvre le launcher (une seule fois). */
     async maintenanceCheck() {
         if (this.maintenanceChecked) return;
         this.maintenanceChecked = true;
@@ -149,12 +170,17 @@ class Splash {
         this.startLauncher();
     }
 
+    /** Ouvre la fenêtre principale et ferme le splash. */
     startLauncher() {
         this.setStatus(`Démarrage...`);
         ipcRenderer.send('main-window-open');
         ipcRenderer.send('update-window-close');
     }
 
+    /**
+     * Affiche un message puis ferme le launcher après 5 secondes.
+     * @param {string} text Message (HTML) à afficher
+     */
     shutdown(text) {
         this.setStatus(`${text}<br>Arrêt dans 5s`);
         let i = 4;
@@ -164,20 +190,35 @@ class Splash {
         }, 1000);
     }
 
+    /**
+     * Met à jour le texte d'état du splash.
+     * @param {string} text Texte (HTML)
+     */
     setStatus(text) {
         this.message.innerHTML = text;
     }
 
+    /** Affiche ou masque la barre de progression du splash. */
     toggleProgress() {
         if (this.progress.classList.toggle("show")) this.setProgress(0, 1);
     }
 
+    /**
+     * Met à jour la barre de progression du splash.
+     * @param {number} value Valeur actuelle
+     * @param {number} max Valeur maximale
+     */
     setProgress(value, max) {
         this.progress.value = value;
         this.progress.max = max;
     }
 }
 
+/**
+ * Attend `ms` millisecondes.
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
 function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }

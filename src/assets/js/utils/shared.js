@@ -15,10 +15,20 @@ const SHARED_DIRS = ['saves', 'screenshots'];
 const SERVERS_FILE = 'servers.dat';
 const MARKER = '.venstone-shared';
 
+/**
+ * Dossier des données partagées (`.venstone/shared`).
+ * @param {string} gamePath
+ * @returns {string}
+ */
 export function sharedPath(gamePath) {
     return `${gamePath}/shared`;
 }
 
+/**
+ * Le chemin est-il un lien symbolique ou une jonction ?
+ * @param {string} p
+ * @returns {boolean}
+ */
 function isLink(p) {
     try {
         return fs.lstatSync(p).isSymbolicLink();
@@ -27,6 +37,7 @@ function isLink(p) {
     }
 }
 
+/** Compare deux chemins sans tenir compte de la casse ni des séparateurs. */
 function samePath(a, b) {
     let norm = p => path.resolve(p).replace(/\\/g, '/').replace(/\/$/, '').toLowerCase();
     return norm(a) === norm(b);
@@ -37,6 +48,13 @@ function canShare(instance, entry) {
     return !instance.verify || (instance.ignored || []).includes(entry);
 }
 
+/**
+ * Nom libre dans `dir` : ajoute « (instance) » en cas de doublon.
+ * @param {string} dir
+ * @param {string} name
+ * @param {string} label Nom de l'instance d'origine
+ * @returns {string}
+ */
 function uniqueName(dir, name, label) {
     if (!fs.existsSync(`${dir}/${name}`)) return name;
     let ext = fs.statSync(`${dir}/${name}`).isDirectory() ? '' : path.extname(name);
@@ -70,6 +88,7 @@ function linksSupported(sharedDir) {
     return linkSupport;
 }
 
+/** Le dossier est-il absent ou vide ? */
 function isEmptyDir(dir) {
     return !fs.existsSync(dir) || fs.readdirSync(dir).length === 0;
 }
@@ -109,6 +128,14 @@ function migrateFolder(source, target, label) {
     return true;
 }
 
+/**
+ * Remplace un dossier d'instance par un lien vers le dossier partagé, en y déplaçant son
+ * contenu. Si la migration est incomplète, le dossier réel est conservé.
+ * @param {string} instanceDir
+ * @param {string} sharedDir
+ * @param {string} name saves ou screenshots
+ * @param {string} label Nom de l'instance
+ */
 function linkFolder(instanceDir, sharedDir, name, label) {
     let link = `${instanceDir}/${name}`;
     let target = `${sharedDir}/${name}`;
@@ -131,6 +158,11 @@ function linkFolder(instanceDir, sharedDir, name, label) {
 /* NBT minimal (servers.dat est un NBT non compressé)                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Lit un fichier NBT non compressé (servers.dat).
+ * @param {Buffer} buf
+ * @returns {{name: string, value: Array}}
+ */
 function readNBT(buf) {
     let o = 0;
     let str = () => { let len = buf.readUInt16BE(o); o += 2; let s = buf.toString('utf8', o, o + len); o += len; return s; };
@@ -170,6 +202,10 @@ function readNBT(buf) {
     return { name, value: payload(10) };
 }
 
+/**
+ * Écrit un NBT non compressé (inverse de readNBT).
+ * @returns {Buffer}
+ */
 function writeNBT(root) {
     let parts = [];
     let push = b => parts.push(b);
@@ -196,10 +232,12 @@ function writeNBT(root) {
     return Buffer.concat(parts);
 }
 
+/** Liste « servers » d'un servers.dat. */
 function serverList(root) {
     return root.value.find(e => e.name === 'servers' && e.type === 9);
 }
 
+/** Adresse d'un serveur (normalisée) pour détecter les doublons. */
 function serverIp(compound) {
     return String(compound.find(e => e.name === 'ip')?.value || '').trim().toLowerCase();
 }
@@ -230,6 +268,7 @@ export function mergeServers(baseBuf, extraBuf) {
     return added ? writeNBT(base) : baseBuf;
 }
 
+/** Copie un fichier en conservant sa date de modification. */
 function copyKeepTime(from, to) {
     fs.copyFileSync(from, to);
     let { atime, mtime } = fs.statSync(from);

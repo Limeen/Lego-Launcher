@@ -21,6 +21,10 @@ export default class OfflineLaunch extends Launch {
         this.usedCache = false;
     }
 
+    /**
+     * Lit le cache de lancement, s'il est complet et que Java est toujours présent.
+     * @returns {object|null}
+     */
     readCache() {
         try {
             if (!fs.existsSync(this.cacheFile)) return null;
@@ -34,6 +38,10 @@ export default class OfflineLaunch extends Launch {
         }
     }
 
+    /**
+     * Enregistre le cache de lancement (avant que la lib ne modifie les JSON).
+     * @param {object} data Résultat de DownloadGame
+     */
     writeCache(data) {
         try {
             fs.mkdirSync(path.dirname(this.cacheFile), { recursive: true });
@@ -52,6 +60,10 @@ export default class OfflineLaunch extends Launch {
         }
     }
 
+    /**
+     * Utilise le cache pour lancer sans réseau (émet `offline`).
+     * @returns {object} Données de lancement, ou `{error}` si l'instance n'a jamais été installée
+     */
     useCache() {
         let cached = this.readCache();
         if (!cached) return { error: NEVER_INSTALLED };
@@ -60,6 +72,10 @@ export default class OfflineLaunch extends Launch {
         return cached;
     }
 
+    /**
+     * Phase de téléchargement : en ligne avec écriture du cache, sinon repli sur le cache.
+     * @returns {Promise<object>}
+     */
     async DownloadGame() {
         if (this.forceOffline) return this.useCache();
 
@@ -87,6 +103,7 @@ export default class OfflineLaunch extends Launch {
         }
     }
 
+    /** Lance le jeu ; toute erreur est convertie en événement `error`. */
     async start() {
         try {
             let data = await this.DownloadGame();

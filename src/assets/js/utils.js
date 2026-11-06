@@ -16,6 +16,10 @@ import popup from './utils/popup.js';
 import { skin2D } from './utils/skin.js';
 import slider from './utils/slider.js';
 
+/**
+ * Applique le thème et choisit un fond d'écran aléatoire.
+ * @param {boolean} [theme] true = sombre ; lu dans la configuration si absent
+ */
 async function setBackground(theme) {
     if (typeof theme == 'undefined') {
         let databaseLauncher = new database();
@@ -43,6 +47,10 @@ async function setBackground(theme) {
     body.style.backgroundAttachment = 'scroll';
 }
 
+/**
+ * Affiche le panneau `id` (login, home, settings) et masque les autres.
+ * @param {string} id
+ */
 async function changePanel(id) {
     // On ne cible que les panneaux : d'autres éléments utilisent aussi la classe "active"
     // (loader sélectionné, préréglage de résolution...), et retirer la classe au mauvais
@@ -53,10 +61,18 @@ async function changePanel(id) {
     panel.classList.add("active");
 }
 
+/**
+ * Dossier AppData de l'utilisateur (ou ./data en développement).
+ * @returns {Promise<string>}
+ */
 async function appdata() {
     return await ipcRenderer.invoke('appData').then(path => path)
 }
 
+/**
+ * Ajoute la carte d'un compte dans la liste des paramètres.
+ * @param {object} data Compte (name, ID, meta...)
+ */
 async function addAccount(data) {
     let div = document.createElement("div");
     div.classList.add("account");
@@ -76,6 +92,11 @@ async function addAccount(data) {
     return document.querySelector('.accounts-list').appendChild(div);
 }
 
+/**
+ * Marque un compte comme actif : carte des paramètres, tête et pseudo de l'accueil.
+ * Prévient l'accueil via l'événement `venstone:account-changed`.
+ * @param {object} data Compte
+ */
 async function accountSelect(data) {
     if (!data) return;
     let account = document.getElementById(`${data.ID}`);
@@ -92,6 +113,10 @@ async function accountSelect(data) {
 //     document.querySelector(".player-head").style.backgroundImage = `url(${skin})`;
 // }
 
+ /**
+  * Affiche la tête du skin et le pseudo dans la barre du bas (Steve si le skin est introuvable).
+  * @param {string} pseudo
+  */
  function headplayer(pseudo) {
     const imageUrl = `https://venstone.xyz/skins/?pseudo=${encodeURIComponent(pseudo)}`;
     const defaultImage = "assets/images/default/steve.png";
@@ -131,6 +156,11 @@ function offlineAccount(name) {
     };
 }
 
+/**
+ * Interroge le serveur Minecraft et met à jour le bloc de statut de l'accueil.
+ * @param {{ip: string, port: number, nameServer?: string}} opt Serveur à interroger
+ * @param {boolean} [offline] Affiche « Mode hors-ligne » plutôt que « Aucune connexion »
+ */
 async function setStatus(opt, offline = false) {
     let nameServerElement = document.querySelector('.server-status-name')
     let statusServerElement = document.querySelector('.server-status-text')

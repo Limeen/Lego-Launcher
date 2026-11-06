@@ -6,16 +6,31 @@
 
 import { LOADERS, INSTANCE_COLORS, getMinecraftVersions, getLoaderVersions, getFabricApiVersions } from './instances.js';
 
+/**
+ * Échappe un texte pour l'insérer dans du HTML.
+ * @param {any} text
+ * @returns {string}
+ */
 export function escapeHTML(text) {
     return String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+/**
+ * Initiales affichées dans l'icône d'une instance (« Mes mods » → « MM »).
+ * @param {string} name
+ * @returns {string}
+ */
 export function initials(name) {
     let words = String(name).trim().split(/\s+/).filter(Boolean);
     if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
     return String(name).slice(0, 2).toUpperCase();
 }
 
+/**
+ * Libellé du loader d'une instance (ex. « Fabric 0.16.14 », « Vanilla »).
+ * @param {object} instance
+ * @returns {string}
+ */
 export function loaderLabel(instance) {
     let type = instance?.loadder?.loadder_type || 'none';
     let label = LOADERS[type]?.label || type;
@@ -48,6 +63,7 @@ export default class InstanceForm {
         this.bind();
     }
 
+    /** Branche les événements des champs du formulaire. */
     bind() {
         let e = this.el;
         e.swatches.innerHTML = INSTANCE_COLORS.map(color => `<div class="swatch" data-color="${color}" style="background:${color}"></div>`).join('');
@@ -83,10 +99,19 @@ export default class InstanceForm {
         this.update();
     }
 
+    /**
+     * Affiche un message d'erreur sous le formulaire (vide = efface).
+     * @param {string} text
+     */
     setError(text) {
         if (this.el.error) this.el.error.textContent = text;
     }
 
+    /**
+     * Met une liste déroulante en attente / indisponible avec un message.
+     * @param {HTMLSelectElement} select
+     * @param {string} text
+     */
     setSelectLoading(select, text) {
         select.innerHTML = `<option value="">${escapeHTML(text)}</option>`;
         select.disabled = true;
@@ -99,6 +124,10 @@ export default class InstanceForm {
         select.disabled = false;
     }
 
+    /**
+     * Remplit la liste des versions de Minecraft (manifest Mojang) puis celle du loader.
+     * Hors-ligne, garde la version actuelle de l'instance.
+     */
     async fillMinecraftVersions() {
         let e = this.el;
         let previous = e.mcVersion.value || this.preset.minecraft_version;
@@ -124,6 +153,10 @@ export default class InstanceForm {
         await this.loadLoaderVersions();
     }
 
+    /**
+     * Charge les versions du loader et de Fabric API pour la version de Minecraft choisie.
+     * Les requêtes obsolètes (changement rapide de version) sont ignorées.
+     */
     async loadLoaderVersions() {
         let e = this.el;
         let loader = this.state.loader;
@@ -185,6 +218,10 @@ export default class InstanceForm {
         this.update();
     }
 
+    /**
+     * Valeurs actuelles du formulaire, au format d'une instance.
+     * @returns {{name: string, color: string, minecraft_version: string, loadder_type: string, loadder_version: string, fabricApi: object|null}}
+     */
     data() {
         let e = this.el;
         let loader = this.state.loader;
@@ -200,6 +237,10 @@ export default class InstanceForm {
         };
     }
 
+    /**
+     * Le formulaire est-il complet (nom, version, loader chargés) ?
+     * @returns {boolean}
+     */
     ready() {
         let e = this.el;
         let data = this.data();
@@ -208,6 +249,7 @@ export default class InstanceForm {
         return true;
     }
 
+    /** Rafraîchit l'affichage (loader actif, couleur, champs visibles, aperçu) puis appelle `onChange`. */
     update() {
         let e = this.el;
         let { loader, color } = this.state;

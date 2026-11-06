@@ -26,6 +26,10 @@ export const INSTANCE_COLORS = ['#2379ee', '#1ac707', '#f8bd19', '#e5484d', '#a8
 
 let localFilePromise = null;
 
+/**
+ * Chemin du fichier des instances locales.
+ * @returns {Promise<string>}
+ */
 function localFile() {
     if (!localFilePromise) {
         localFilePromise = ipcRenderer.invoke('path-user-data').then(dir => path.join(dir, 'local-instances.json'));
@@ -33,6 +37,11 @@ function localFile() {
     return localFilePromise;
 }
 
+/**
+ * Télécharge un JSON (APIs Mojang, Fabric, Quilt, Forge, NeoForge, Modrinth).
+ * @param {string} url
+ * @returns {Promise<any>}
+ */
 async function fetchJson(url) {
     let res = await nodeFetch(url, { timeout: TIMEOUT, headers: { 'User-Agent': 'Venstone-Launcher' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -43,16 +52,33 @@ async function fetchJson(url) {
 /* Chemins                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Dossier du jeu (`%APPDATA%/.venstone`, ou `venstone` sous macOS).
+ * @param {object} launcherConfig Configuration de l'API (dataDirectory)
+ * @returns {Promise<string>}
+ */
 export async function getGamePath(launcherConfig) {
     let appdata = await ipcRenderer.invoke('appData');
     let dir = launcherConfig?.dataDirectory || 'venstone';
     return `${appdata}/${process.platform == 'darwin' ? dir : `.${dir}`}`;
 }
 
+/**
+ * Dossier d'une instance.
+ * @param {string} gamePath
+ * @param {{name: string}} instance
+ * @returns {string}
+ */
 export function instanceFolder(gamePath, instance) {
     return `${gamePath}/instances/${instance.name}`;
 }
 
+/**
+ * Fichier de cache permettant de relancer l'instance hors-ligne.
+ * @param {string} gamePath
+ * @param {{name: string}} instance
+ * @returns {string}
+ */
 export function launchCacheFile(gamePath, instance) {
     return `${gamePath}/launcher-cache/${instance.name.replace(FORBIDDEN_CHARS, '_')}.json`;
 }
@@ -66,6 +92,10 @@ export function isInstalled(gamePath, instance) {
 /* Instances locales                                                   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Instances créées par le joueur (marquées `local: true`).
+ * @returns {Promise<object[]>}
+ */
 export async function getLocalInstances() {
     try {
         let file = await localFile();
@@ -78,6 +108,10 @@ export async function getLocalInstances() {
     }
 }
 
+/**
+ * Enregistre la liste des instances locales (écriture atomique).
+ * @param {object[]} list
+ */
 async function saveLocalInstances(list) {
     let file = await localFile();
     let clean = list.map(({ local, ...rest }) => rest);
@@ -85,10 +119,22 @@ async function saveLocalInstances(list) {
     fs.renameSync(`${file}.tmp`, file);
 }
 
+/**
+ * Nettoie un nom d'instance pour qu'il soit utilisable comme nom de dossier.
+ * @param {string} name
+ * @returns {string}
+ */
 export function sanitizeName(name) {
     return (name || '').replace(FORBIDDEN_CHARS, '').replace(/\s+/g, ' ').trim().replace(/\.+$/, '').slice(0, 32);
 }
 
+/**
+ * Vérifie qu'un nom d'instance est valide et libre.
+ * @param {string} name
+ * @param {object[]} officialList Instances officielles
+ * @param {string|null} [exceptName] Instance en cours de renommage (ignorée)
+ * @returns {Promise<{name?: string, error?: string}>}
+ */
 export async function validateName(name, officialList, exceptName = null) {
     let clean = sanitizeName(name);
     if (clean.length < 2) return { error: 'Le nom doit contenir au moins 2 caractères.' };
@@ -100,6 +146,11 @@ export async function validateName(name, officialList, exceptName = null) {
     return { name: clean };
 }
 
+/**
+ * Crée une instance locale (rien n'est téléchargé avant le premier lancement).
+ * @param {object} data Valeurs du formulaire (voir InstanceForm#data)
+ * @returns {Promise<object>}
+ */
 export async function createLocalInstance(data) {
     let list = await getLocalInstances();
     let instance = {
@@ -171,6 +222,13 @@ export async function updateLocalInstance(name, changes, gamePath) {
     return { ...next, local: true };
 }
 
+/**
+ * Supprime une instance locale, et éventuellement ses fichiers.
+ * Les liens vers les données partagées sont retirés avant, les mondes ne sont jamais supprimés.
+ * @param {string} name
+ * @param {string} gamePath
+ * @param {boolean} deleteFiles
+ */
 export async function deleteLocalInstance(name, gamePath, deleteFiles) {
     let list = (await getLocalInstances()).filter(i => i.name !== name);
     await saveLocalInstances(list);
@@ -188,6 +246,12 @@ export async function deleteLocalInstance(name, gamePath, deleteFiles) {
 /* Sélection / whitelist                                               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Le compte a-t-il accès à cette instance (whitelist) ?
+ * @param {object} instance
+ * @param {object} [auth] Compte
+ * @returns {boolean}
+ */
 export function canUseInstance(instance, auth) {
     if (!instance.whitelistActive) return true;
     return (instance.whitelist || []).includes(auth?.name);
@@ -215,6 +279,10 @@ export async function resolveInstanceSelection(configClient, auth) {
 /* ------------------------------------------------------------------ */
 
 let manifestCache = null;
+/**
+ * Versions de Minecraft disponibles (manifest Mojang, mis en cache pour la session).
+ * @returns {Promise<{latest: object, versions: Array<{id: string, type: string}>}>}
+ */
 export async function getMinecraftVersions() {
     if (!manifestCache) {
         manifestCache = fetchJson('https://launchermeta.mojang.com/mc/game/version_manifest_v2.json')

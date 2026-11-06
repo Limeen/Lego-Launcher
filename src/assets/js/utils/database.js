@@ -23,6 +23,10 @@ let dev = process.env.NODE_ENV === 'dev';
 let connectionPromise = null;
 let readyTables = new Map();
 
+/**
+ * Connexion SQLite unique, ouverte au premier appel, en mode sérialisé.
+ * @returns {Promise<import("sqlite3").Database>}
+ */
 function connection() {
     if (!connectionPromise) {
         connectionPromise = ipcRenderer.invoke('path-user-data').then(userData => new Promise((resolve, reject) => {
@@ -40,6 +44,10 @@ function connection() {
     return connectionPromise;
 }
 
+/**
+ * Exécute une requête d'écriture et attend sa fin.
+ * @returns {Promise<object>} Contexte sqlite3 (`lastID`, `changes`)
+ */
 function run(db, sql, params = []) {
     return new Promise((resolve, reject) => db.run(sql, params, function (err) {
         if (err) reject(err);
@@ -47,19 +55,37 @@ function run(db, sql, params = []) {
     }));
 }
 
+/**
+ * Exécute une requête et renvoie la première ligne.
+ * @returns {Promise<object|undefined>}
+ */
 function get(db, sql, params = []) {
     return new Promise((resolve, reject) => db.get(sql, params, (err, row) => err ? reject(err) : resolve(row)));
 }
 
+/**
+ * Exécute une requête et renvoie toutes les lignes.
+ * @returns {Promise<object[]>}
+ */
 function all(db, sql, params = []) {
     return new Promise((resolve, reject) => db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows)));
 }
 
+/**
+ * Valide un nom de table (il est inséré tel quel dans la requête).
+ * @param {string} name
+ * @returns {string}
+ */
 function tableName(name) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`Nom de table invalide : ${name}`);
     return name;
 }
 
+/**
+ * Connexion + création de la table si besoin.
+ * @param {string} name
+ * @returns {Promise<{db: object, name: string}>}
+ */
 async function table(name) {
     let db = await connection();
     name = tableName(name);
@@ -70,6 +96,11 @@ async function table(name) {
     return { db, name };
 }
 
+/**
+ * Transforme une ligne en objet : JSON décodé + `ID` de la ligne.
+ * @param {object} row
+ * @returns {object|undefined}
+ */
 function parse(row) {
     if (!row) return undefined;
     let data;
@@ -84,6 +115,12 @@ function parse(row) {
 }
 
 class database {
+    /**
+     * Ajoute une entrée.
+     * @param {string} tableName
+     * @param {object} data
+     * @returns {Promise<object>} L'entrée avec son `ID`
+     */
     async createData(tableName, data) {
         let { db, name } = await table(tableName);
         let now = new Date().toISOString();
@@ -91,23 +128,45 @@ class database {
         return { ...data, ID: result.lastID };
     }
 
+    /**
+     * Lit une entrée par identifiant.
+     * @param {string} tableName
+     * @param {number} [key=1] Identifiant (1 = configuration du joueur)
+     * @returns {Promise<object|undefined>}
+     */
     async readData(tableName, key = 1) {
         let { db, name } = await table(tableName);
         return parse(await get(db, `SELECT * FROM ${name} WHERE id = ?`, [key]));
     }
 
+    /**
+     * Lit toutes les entrées d'une table.
+     * @param {string} tableName
+     * @returns {Promise<object[]>}
+     */
     async readAllData(tableName) {
         let { db, name } = await table(tableName);
         let rows = await all(db, `SELECT * FROM ${name} ORDER BY id`);
         return rows.map(parse).filter(Boolean);
     }
 
+    /**
+     * Remplace une entrée (attend la fin de l'écriture).
+     * @param {string} tableName
+     * @param {object} data
+     * @param {number} [key=1]
+     */
     async updateData(tableName, data, key = 1) {
         let { db, name } = await table(tableName);
         let { ID, ...clean } = data || {};
         await run(db, `UPDATE ${name} SET json_data = ?, updatedAt = ? WHERE id = ?`, [JSON.stringify(clean), new Date().toISOString(), key]);
     }
 
+    /**
+     * Supprime une entrée.
+     * @param {string} tableName
+     * @param {number} [key=1]
+     */
     async deleteData(tableName, key = 1) {
         let { db, name } = await table(tableName);
         await run(db, `DELETE FROM ${name} WHERE id = ?`, [key]);

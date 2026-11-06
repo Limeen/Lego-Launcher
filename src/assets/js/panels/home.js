@@ -35,15 +35,24 @@ class LaunchProgress {
         this.noteText = ''
     }
 
+    /**
+     * Texte affiché au-dessus de la barre (avec la note éventuelle).
+     * @param {string} text HTML
+     */
     setLabel(text) {
         this.label.innerHTML = this.noteText ? `${text}<div class="progress-note">${this.noteText}</div>` : text
     }
 
+    /** Annule les minuteries de la barre. */
     clearTimers() {
         clearInterval(this.timer)
         clearTimeout(this.idle)
     }
 
+    /**
+     * Mode indéterminé : animation continue, pour les phases sans progression connue.
+     * @param {string} text
+     */
     indeterminate(text) {
         this.clearTimers()
         this.bar.style.display = ''
@@ -52,6 +61,12 @@ class LaunchProgress {
         this.setLabel(text)
     }
 
+    /**
+     * Progression réelle.
+     * @param {number} value
+     * @param {number} size
+     * @param {string} text Libellé de la phase (Téléchargement, Vérification...)
+     */
     set(value, size, text) {
         this.clearTimers()
         let percent = Math.max(0, Math.min(100, (value / size) * 100))
@@ -64,16 +79,25 @@ class LaunchProgress {
         this.idle = setTimeout(() => this.indeterminate(finished ? 'Préparation du jeu...' : `${text}...`), finished ? 800 : 4000)
     }
 
+    /**
+     * Ajoute une note discrète sous le texte (ex. erreurs réseau).
+     * @param {string} text
+     */
     note(text) {
         this.noteText = text
     }
 
+    /**
+     * Masque la barre et affiche un texte final (« En jeu »).
+     * @param {string} text
+     */
     done(text) {
         this.clearTimers()
         this.bar.style.display = 'none'
         this.setLabel(text)
     }
 
+    /** Réinitialise et masque la barre. */
     stop() {
         this.clearTimers()
         this.noteText = ''
@@ -85,6 +109,10 @@ class LaunchProgress {
 
 class Home {
     static id = "home";
+    /**
+     * Initialise l'accueil : actualités, sélecteur d'instance, création, éditeur et lancement.
+     * @param {object} config Configuration de l'API
+     */
     async init(config) {
         this.config = config;
         this.db = new database();
@@ -115,6 +143,10 @@ class Home {
     /* News                                                                */
     /* ------------------------------------------------------------------ */
 
+    /**
+     * Crée le bloc HTML d'une actualité.
+     * @returns {HTMLElement}
+     */
     newsBlock(title, content, date, author) {
         let blockNews = document.createElement('div');
         blockNews.classList.add('news-block');
@@ -137,6 +169,7 @@ class Home {
         return blockNews
     }
 
+    /** Affiche les actualités (ou un message hors-ligne). */
     async news() {
         let newsElement = document.querySelector('.news-list');
         let news = await config.getNews().then(res => res).catch(() => false);
@@ -170,6 +203,7 @@ class Home {
         }
     }
 
+    /** Clic sur la tête du joueur : ouvre la page de changement de skin. */
     socialLick() {
         document.querySelector('.player-head').addEventListener('click', () => {
             let pseudo = document.getElementById("player-username").textContent
@@ -181,12 +215,21 @@ class Home {
     /* Instances                                                           */
     /* ------------------------------------------------------------------ */
 
+    /**
+     * Configuration du joueur et compte sélectionné.
+     * @returns {Promise<{configClient: object, auth: object|undefined}>}
+     */
     async currentAuth() {
         let configClient = await this.db.readData('configClient')
         let auth = configClient?.account_selected ? await this.db.readData('accounts', configClient.account_selected) : undefined
         return { configClient, auth }
     }
 
+    /**
+     * Recharge les instances (officielles + locales), corrige la sélection si besoin et met à
+     * jour la barre du bas, le sélecteur et le statut du serveur.
+     * @returns {Promise<object|undefined>} Instance sélectionnée
+     */
     async refreshInstances() {
         let { configClient, auth } = await this.currentAuth()
         this.instances = await getAllInstances(auth)
@@ -204,11 +247,20 @@ class Home {
         return instance
     }
 
+    /**
+     * Statut du serveur associé à l'instance (ou à la première instance officielle).
+     * @param {object} [instance]
+     */
     async updateStatus(instance) {
         let status = instance?.status || this.instances.official[0]?.status
         await setStatus(status, this.offline)
     }
 
+    /**
+     * Remplit l'icône d'une instance : logo Venstone ou initiales sur sa couleur.
+     * @param {object} instance
+     * @param {HTMLElement} element
+     */
     iconHTML(instance, element) {
         element.classList.remove('official-icon')
         element.style.background = ''
@@ -224,6 +276,10 @@ class Home {
         }
     }
 
+    /**
+     * Met à jour le sélecteur d'instance de la barre du bas.
+     * @param {object} [instance] Instance sélectionnée
+     */
     renderBottomBar(instance) {
         let name = document.querySelector('.instance-picker-name')
         let meta = document.querySelector('.instance-picker-meta')
@@ -245,6 +301,12 @@ class Home {
         playBTN.classList.toggle('disabled', this.offline && !installed)
     }
 
+    /**
+     * Crée la carte d'une instance pour le sélecteur.
+     * @param {object} instance
+     * @param {string} selected Nom de l'instance sélectionnée
+     * @returns {HTMLElement}
+     */
     instanceCard(instance, selected) {
         let installed = isInstalled(this.gamePath, instance)
         let unavailable = this.offline && !installed
@@ -277,6 +339,10 @@ class Home {
         return card
     }
 
+    /**
+     * Affiche les deux colonnes du sélecteur (officielles / personnelles).
+     * @param {string} selected Nom de l'instance sélectionnée
+     */
     renderInstanceLists(selected) {
         let officialList = document.querySelector('.instances-List')
         let localList = document.querySelector('.custom-instances-List')
@@ -306,6 +372,11 @@ class Home {
         createBTN.title = this.offline ? 'Connexion internet requise' : ''
     }
 
+    /**
+     * Sélectionne une instance et l'enregistre dans la configuration.
+     * @param {string} name
+     * @param {{silent?: boolean}} [options] `silent` : n'enregistre que la sélection, sans rafraîchir l'affichage
+     */
     async selectInstance(name, { silent = false } = {}) {
         let configClient = await this.db.readData('configClient')
         configClient.instance_selct = name
@@ -317,23 +388,33 @@ class Home {
         this.updateStatus(instance)
     }
 
+    /** Ouvre le sélecteur d'instance (liste rafraîchie). */
     async openInstancePicker() {
         this.openPopup('.instance-popup')
         await this.refreshInstances()
     }
 
+    /**
+     * Ouvre une fenêtre modale avec son animation.
+     * @param {string} selector
+     */
     openPopup(selector) {
         let element = document.querySelector(selector)
         element.style.display = 'flex'
         requestAnimationFrame(() => element.classList.add('open'))
     }
 
+    /**
+     * Ferme une fenêtre modale.
+     * @param {string} selector
+     */
     closePopup(selector) {
         let element = document.querySelector(selector)
         element.classList.remove('open')
         element.style.display = 'none'
     }
 
+    /** Branche le sélecteur d'instance, le bouton Jouer et le bouton de création. */
     bindInstanceUI() {
         let instancePopup = document.querySelector('.instance-popup')
 
@@ -381,6 +462,7 @@ class Home {
     /* Création d'instance                                                 */
     /* ------------------------------------------------------------------ */
 
+    /** Branche la fenêtre de création d'instance. */
     bindCreateUI() {
         let root = document.querySelector('.create-popup')
         this.createForm = new InstanceForm(root, {
@@ -394,6 +476,7 @@ class Home {
         root.querySelector('.create-submit').addEventListener('click', () => this.submitCreate())
     }
 
+    /** Ouvre la fenêtre de création avec un formulaire vierge. */
     async openCreate() {
         this.createForm.reset({ color: INSTANCE_COLORS[Math.floor(Math.random() * INSTANCE_COLORS.length)] })
         this.openPopup('.create-popup')
@@ -401,6 +484,7 @@ class Home {
         await this.createForm.fillMinecraftVersions()
     }
 
+    /** Valide le formulaire, crée l'instance et la sélectionne. */
     async submitCreate() {
         let form = this.createForm
         let submit = document.querySelector('.create-popup .create-submit')
@@ -431,6 +515,11 @@ class Home {
     /* Lancement                                                           */
     /* ------------------------------------------------------------------ */
 
+    /**
+     * Bascule la barre du bas entre « Jouer » et la progression du lancement.
+     * @param {boolean} playing
+     * @param {string} [text]
+     */
     setPlayingUI(playing, text = 'Vérification...') {
         this.playing = playing
         document.querySelector('.play-group').style.display = playing ? 'none' : 'flex'
@@ -439,10 +528,18 @@ class Home {
         else this.progress.stop()
     }
 
+    /**
+     * Affiche une erreur dans la popup globale.
+     * @param {string} content HTML
+     */
     showError(content) {
         new popup().openPopup({ title: 'Erreur', content, color: 'red', options: true })
     }
 
+    /**
+     * Lance l'instance sélectionnée : vérifie la connexion, installe Fabric API si besoin,
+     * prépare les données partagées puis démarre le jeu (en ligne ou depuis le cache hors-ligne).
+     */
     async startGame() {
         if (this.playing) return
         let { configClient, auth } = await this.currentAuth()
@@ -603,6 +700,10 @@ class Home {
         launch.Launch(opt);
     }
 
+    /**
+     * Date d'une actualité (jour + mois en toutes lettres).
+     * @returns {{year: number, month: string, day: number}}
+     */
     getdate(e) {
         let date = new Date(e)
         if (isNaN(date)) date = new Date()

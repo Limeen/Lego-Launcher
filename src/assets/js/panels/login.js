@@ -10,6 +10,11 @@ import { resolveInstanceSelection } from '../utils/instances.js';
 
 class Login {
     static id = "login";
+    /**
+     * Affiche le formulaire de connexion correspondant au mode de l'API
+     * (`online` : false = hors-ligne, true = Microsoft, URL = AZauth).
+     * @param {object} config Configuration de l'API
+     */
     async init(config) {
         this.config = config;
         this.db = new database();
@@ -28,6 +33,7 @@ class Login {
         })
     }
 
+    /** Connexion Microsoft (non utilisée par Venstone actuellement). */
     async getMicrosoft() {
         console.log('Initializing Microsoft login...');
         let popupLogin = new popup();
@@ -61,6 +67,7 @@ class Login {
         })
     }
 
+    /** Connexion hors-ligne par pseudo (comptes Venstone). */
     async getCrack() {
         console.log('Initializing offline login...');
         let popupLogin = new popup();
@@ -103,6 +110,7 @@ class Login {
         });
     }
 
+    /** Connexion AZauth, avec double authentification. */
     async getAZauth() {
         console.log('Initializing AZauth login...');
         let AZauthClient = new AZauth(this.config.online);
@@ -191,6 +199,10 @@ class Login {
         });
     }
 
+    /**
+     * Enregistre le compte, le sélectionne et ouvre l'accueil.
+     * @param {object} connectionData Compte renvoyé par la méthode de connexion
+     */
     async saveData(connectionData) {
         let configClient = await this.db.readData('configClient');
         let account = await this.db.createData('accounts', connectionData)

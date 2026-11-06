@@ -32,10 +32,12 @@ export default class InstanceEditor {
         return instanceFolder(this.home.gamePath, this.instance)
     }
 
+    /** Raccourci querySelector limité à la fenêtre d'édition. */
     q(selector) {
         return this.root.querySelector(selector)
     }
 
+    /** Branche les onglets, la liste des mods, l'import (bouton et glisser-déposer) et les paramètres. */
     bind() {
         let close = () => this.close()
         this.q('.edit-close').addEventListener('click', close)
@@ -104,10 +106,16 @@ export default class InstanceEditor {
         this.q('.edit-delete').addEventListener('click', () => this.deleteInstance())
     }
 
+    /** L'élément glissé contient-il des fichiers ? */
     hasFiles(e) {
         return [...(e.dataTransfer?.types || [])].includes('Files')
     }
 
+    /**
+     * Ouvre l'éditeur pour une instance.
+     * @param {object} instance Instance locale
+     * @param {"mods"|"general"} [tab]
+     */
     open(instance, tab = 'mods') {
         this.instance = instance
         this.formLoaded = false
@@ -126,10 +134,15 @@ export default class InstanceEditor {
         this.home.openPopup('.edit-popup')
     }
 
+    /** Ferme l'éditeur. */
     close() {
         this.home.closePopup('.edit-popup')
     }
 
+    /**
+     * Affiche un onglet ; les versions ne sont chargées qu'à la première ouverture des paramètres.
+     * @param {"mods"|"general"} tab
+     */
     showTab(tab) {
         this.root.querySelectorAll('.edit-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
         this.root.querySelectorAll('.edit-pane').forEach(p => p.classList.toggle('active', p.classList.contains(`edit-pane-${tab}`)))
@@ -139,6 +152,7 @@ export default class InstanceEditor {
         }
     }
 
+    /** En-tête : icône, nom, loader et version. */
     renderHeader() {
         let i = this.instance
         this.home.iconHTML(i, this.q('.edit-icon'))
@@ -150,6 +164,7 @@ export default class InstanceEditor {
     /* Mods                                                                */
     /* ------------------------------------------------------------------ */
 
+    /** Relit le dossier des mods et recalcule leur compatibilité. */
     refreshMods() {
         try {
             this.mods = listMods(this.dir)
@@ -163,6 +178,7 @@ export default class InstanceEditor {
         this.renderMods()
     }
 
+    /** Affiche la liste des mods (filtrée par la recherche) avec leurs badges. */
     renderMods() {
         let list = this.q('.mods-list')
         let search = this.q('.mods-search').value.trim().toLowerCase()
@@ -225,6 +241,11 @@ export default class InstanceEditor {
         }).join('')
     }
 
+    /**
+     * Active ou désactive un mod.
+     * @param {object} mod
+     * @param {boolean} enabled
+     */
     async toggleMod(mod, enabled) {
         try {
             setModEnabled(this.dir, mod.file, enabled)
@@ -234,6 +255,10 @@ export default class InstanceEditor {
         this.refreshMods()
     }
 
+    /**
+     * Supprime un mod après confirmation.
+     * @param {object} mod
+     */
     async removeMod(mod) {
         let { confirmed } = await confirmDialog({
             title: 'Supprimer ce mod ?',
@@ -313,6 +338,10 @@ export default class InstanceEditor {
     /* Paramètres                                                          */
     /* ------------------------------------------------------------------ */
 
+    /**
+     * Ce qui diffère entre le formulaire et l'instance enregistrée.
+     * @returns {{name: boolean, color: boolean, version: boolean, api: boolean}}
+     */
     changes() {
         let d = this.form.data()
         let i = this.instance
@@ -326,6 +355,7 @@ export default class InstanceEditor {
         }
     }
 
+    /** Active le bouton Enregistrer s'il y a des changements valides. */
     updateSaveState() {
         if (!this.instance) return
         let c = this.changes()
@@ -334,6 +364,7 @@ export default class InstanceEditor {
         this.q('.edit-version-note').classList.toggle('visible', c.version && this.mods.length > 0)
     }
 
+    /** Enregistre les paramètres (renommage du dossier, changement de version après confirmation). */
     async save() {
         let btn = this.q('.edit-save')
         if (btn.classList.contains('disabled') || this.saving) return
@@ -387,6 +418,7 @@ export default class InstanceEditor {
         }
     }
 
+    /** Supprime l'instance après confirmation (fichiers optionnels, mondes conservés). */
     async deleteInstance() {
         let { confirmed, checked } = await confirmDialog({
             title: "Supprimer l'instance ?",

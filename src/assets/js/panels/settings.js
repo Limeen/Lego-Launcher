@@ -15,6 +15,10 @@ const DEFAULT_DOWNLOADS = 5;
 
 class Settings {
     static id = "settings";
+    /**
+     * Initialise chaque onglet des paramètres.
+     * @param {object} config Configuration de l'API
+     */
     async init(config) {
         this.config = config;
         this.db = new database();
@@ -45,6 +49,7 @@ class Settings {
         return this.configQueue;
     }
 
+    /** Navigation entre les onglets et bouton Retour. */
     navBTN() {
         document.querySelector('.nav-settings').addEventListener('click', e => {
             let btn = e.target.closest('.nav-settings-btn, .nav-back');
@@ -58,6 +63,10 @@ class Settings {
         })
     }
 
+    /**
+     * Affiche un onglet des paramètres.
+     * @param {string} id account, game, java ou launcher
+     */
     showTab(id) {
         document.querySelector('.active-settings-BTN')?.classList.remove('active-settings-BTN');
         document.querySelector(`.nav-settings-btn#${id}`).classList.add('active-settings-BTN');
@@ -69,6 +78,7 @@ class Settings {
     /* Comptes                                                             */
     /* ------------------------------------------------------------------ */
 
+    /** Sélection, ajout et suppression des comptes. */
     accounts() {
         document.querySelector('.accounts-list').addEventListener('click', async e => {
             let deleteBTN = e.target.closest('.delete-profile');
@@ -116,6 +126,11 @@ class Settings {
         })
     }
 
+    /**
+     * Configuration avec une instance accessible pour ce compte (whitelist).
+     * @param {object} auth Compte
+     * @returns {Promise<object>}
+     */
     async setInstance(auth) {
         let configClient = await this.db.readData('configClient');
         configClient.instance_selct = await resolveInstanceSelection(configClient, auth);
@@ -126,6 +141,7 @@ class Settings {
     /* Jeu                                                                 */
     /* ------------------------------------------------------------------ */
 
+    /** Curseurs de mémoire (min ≤ max), bouton « Recommandé » et jauge de RAM. */
     async ram() {
         let configClient = await this.db.readData('configClient');
         let totalMem = Math.trunc(os.totalmem() / 1073741824 * 10) / 10;
@@ -192,6 +208,7 @@ class Settings {
         document.querySelector('.nav-settings-btn#game').addEventListener('click', render);
     }
 
+    /** Taille de la fenêtre de jeu, préréglages et plein écran. */
     async resolution() {
         let configClient = await this.db.readData('configClient');
         let resolution = configClient?.game_config?.screen_size || DEFAULT_RESOLUTION;
@@ -233,6 +250,7 @@ class Settings {
         fullscreen.addEventListener('change', () => this.updateConfig(c => { c.game_config.fullscreen = fullscreen.checked }));
     }
 
+    /** Arguments JVM supplémentaires. */
     async jvmArgs() {
         let configClient = await this.db.readData('configClient');
         let input = document.querySelector('.jvm-args');
@@ -244,6 +262,7 @@ class Settings {
     /* Java                                                                */
     /* ------------------------------------------------------------------ */
 
+    /** Choix d'un exécutable Java personnalisé ou retour au Java automatique. */
     async javaPath() {
         let runtime = `${this.gamePath}/runtime`;
         document.querySelector(".java-path-txt").textContent = runtime;
@@ -293,6 +312,7 @@ class Settings {
     /* Launcher                                                            */
     /* ------------------------------------------------------------------ */
 
+    /** Comportement au lancement et nombre de téléchargements simultanés. */
     async launcher() {
         let configClient = await this.db.readData('configClient');
 
@@ -321,6 +341,7 @@ class Settings {
         })
     }
 
+    /** Boutons d'accès rapide aux dossiers (jeu, mondes, captures, logs). */
     folders() {
         document.querySelector('.folder-grid').addEventListener('click', async e => {
             let btn = e.target.closest('.folder-btn');
@@ -337,6 +358,10 @@ class Settings {
         });
     }
 
+    /**
+     * Ouvre un dossier dans l'explorateur (le crée s'il n'existe pas).
+     * @param {string} folder
+     */
     openFolder(folder) {
         fs.mkdirSync(folder, { recursive: true });
         shell.openPath(folder);
