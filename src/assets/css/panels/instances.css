@@ -95,6 +95,7 @@
 .player-username {
     color: #ffffff;
     font: normal normal 19px / 29px Poppins;
+    padding-top: 3px; /* aligne visuellement le pseudo sur le centre de la tête */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -686,31 +687,27 @@
     gap: 8px;
     margin-top: 8px;
     padding: 9px;
-    border: dashed 1px #4a4a4a;
+    background-color: #2379ee;
+    border: solid 1px #5aa0ff;
     border-radius: 10px;
-    color: #cfcfcf;
+    color: #ffffff;
     font: normal normal bold 13px/18px Poppins;
     cursor: pointer;
-    transition: background .2s, border-color .2s, color .2s;
+    transition: background-color .4s, border-color .4s;
 }
 
+/* Mêmes couleurs que le bouton "Jouer" */
 .create-custom-instance:hover {
-    border-style: solid;
-    border-color: #5aa0ff;
-    background: #2379ee1f;
-    color: #ffffff;
+    background-color: #0d51ad;
+    border-color: #2e6dc5;
 }
 
-.create-custom-instance.disabled {
-    opacity: .45;
-    cursor: not-allowed;
-}
-
+.create-custom-instance.disabled,
 .create-custom-instance.disabled:hover {
-    border-style: dashed;
-    border-color: #4a4a4a;
-    background: none;
-    color: #cfcfcf;
+    background-color: #2a3a52;
+    border-color: #3b4c66;
+    color: #9fb0c8;
+    cursor: not-allowed;
 }
 
 .create-plus {
@@ -720,7 +717,7 @@
     width: 20px;
     height: 20px;
     border-radius: 6px;
-    background: #2379ee;
+    background: #ffffff33;
     color: #ffffff;
     font-size: 16px;
     line-height: 1;
