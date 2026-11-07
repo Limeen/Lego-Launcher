@@ -36,7 +36,7 @@ function openSource(input) {
 }
 
 /** Renvoie Map<nom, Buffer> des entrées pour lesquelles `wanted(nom)` est vrai. */
-function readZipEntries(input, wanted) {
+export function readZipEntries(input, wanted) {
     let src = openSource(input);
     try {
         let tailLen = Math.min(src.size, 65557);
@@ -90,7 +90,7 @@ function readZipEntries(input, wanted) {
  * @param {string} v
  * @returns {number[]|null}
  */
-function parseVersion(v) {
+export function parseVersion(v) {
     if (v === undefined || v === null) return null;
     let clean = String(v).trim().replace(/^v/i, '').split(/[-+]/)[0];
     if (!/^\d+(\.\d+)*$/.test(clean)) return null;
@@ -101,7 +101,7 @@ function parseVersion(v) {
  * Compare deux versions numériques.
  * @returns {number} < 0, 0 ou > 0
  */
-function compare(a, b) {
+export function compare(a, b) {
     for (let i = 0; i < Math.max(a.length, b.length); i++) {
         let d = (a[i] || 0) - (b[i] || 0);
         if (d) return d;
@@ -214,7 +214,7 @@ const IGNORED_DEPENDENCIES = new Set(['minecraft', 'java', 'fabricloader', 'fabr
  * Décode un JSON de mod, en tolérant les retours à la ligne bruts dans les chaînes.
  * @param {Buffer} buffer
  */
-function parseJson(buffer) {
+export function parseJson(buffer) {
     let text = buffer.toString('utf8').replace(/^﻿/, '');
     try {
         return JSON.parse(text);

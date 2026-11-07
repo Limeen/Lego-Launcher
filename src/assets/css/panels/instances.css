@@ -1373,9 +1373,53 @@ select.field-input option {
 .mod-badge.warn { background: #f8bd1926; color: #f8bd19; }
 .mod-badge.off { background: #3b3b3b; color: #bdbdbd; }
 .mod-badge.muted { background: #2e2e2e; color: #8a8a8a; }
+.mod-badge.active { background: #2379ee26; color: #5aa0ff; }
 
 .mod-row .switch {
     transform: scale(.85);
+}
+
+.mod-row .switch.locked {
+    opacity: .35;
+    cursor: not-allowed;
+}
+
+.mod-row .switch.locked span {
+    pointer-events: none;
+}
+
+.edit-tab-btn.hidden {
+    display: none;
+}
+
+/* Bandeau d'information (mod de shaders utilisé ou manquant) */
+.pane-banner {
+    display: none;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #2379ee14;
+    border: solid 1px #2379ee40;
+    border-radius: 10px;
+    color: #bdbdbd;
+    font: normal normal normal 12px/17px Poppins;
+}
+
+.pane-banner.visible {
+    display: block;
+}
+
+.pane-banner.warn {
+    background: #f8bd1912;
+    border-color: #f8bd1940;
+}
+
+.pane-banner b {
+    color: #E1E1E1;
+}
+
+.pane-banner a {
+    color: #5aa0ff;
+    cursor: pointer;
 }
 
 .mods-empty {
@@ -1421,7 +1465,7 @@ select.field-input option {
     pointer-events: none;
 }
 
-.edit-pane-mods.dragging .mods-drop-overlay {
+.content-pane.dragging .mods-drop-overlay {
     display: flex;
 }
 

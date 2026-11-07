@@ -198,25 +198,64 @@
             </div>
 
             <div class="edit-tabs">
-                <div class="edit-tab-btn active" data-tab="mods">Mods <span class="section-count edit-mods-count">0</span></div>
+                <div class="edit-tab-btn active" data-tab="mods">Mods <span class="section-count" data-count="mods">0</span></div>
+                <div class="edit-tab-btn" data-tab="resourcepacks">Packs de textures <span class="section-count" data-count="resourcepacks">0</span></div>
+                <div class="edit-tab-btn edit-tab-shaders" data-tab="shaderpacks">Shaders <span class="section-count" data-count="shaderpacks">0</span></div>
                 <div class="edit-tab-btn" data-tab="general">Paramètres de l'instance</div>
             </div>
 
-            <!-- Onglet mods -->
-            <div class="edit-pane edit-pane-mods active">
+            <!-- Onglets de contenu : mods, packs de textures, shaders -->
+            <div class="edit-pane edit-pane-mods content-pane active" data-kind="mods">
                 <div class="mods-toolbar">
                     <div class="mods-search-box">
                         <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
-                        <input type="text" class="mods-search" placeholder="Rechercher un mod..." spellcheck="false"/>
+                        <input type="text" class="mods-search pane-search" placeholder="Rechercher un mod..." spellcheck="false"/>
                     </div>
-                    <div class="btn-small btn-ghost mods-open-folder">Ouvrir le dossier</div>
-                    <div class="btn-small mods-import">+ Importer des mods</div>
-                    <input type="file" class="mods-file" accept=".jar" multiple/>
+                    <div class="btn-small btn-ghost pane-folder">Ouvrir le dossier</div>
+                    <div class="btn-small pane-import">+ Importer des mods</div>
+                    <input type="file" class="mods-file pane-file" accept=".jar" multiple/>
                 </div>
-                <div class="mods-summary"></div>
-                <div class="mods-list"></div>
+                <div class="pane-banner"></div>
+                <div class="mods-summary pane-summary"></div>
+                <div class="mods-list pane-list"></div>
                 <div class="mods-drop-overlay">
                     <div class="mods-drop-box">Déposez vos fichiers <b>.jar</b> pour les ajouter</div>
+                </div>
+            </div>
+
+            <div class="edit-pane edit-pane-resourcepacks content-pane" data-kind="resourcepacks">
+                <div class="mods-toolbar">
+                    <div class="mods-search-box">
+                        <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+                        <input type="text" class="mods-search pane-search" placeholder="Rechercher un pack de textures..." spellcheck="false"/>
+                    </div>
+                    <div class="btn-small btn-ghost pane-folder">Ouvrir le dossier</div>
+                    <div class="btn-small pane-import">+ Importer des packs</div>
+                    <input type="file" class="mods-file pane-file" accept=".zip" multiple/>
+                </div>
+                <div class="pane-banner"></div>
+                <div class="mods-summary pane-summary"></div>
+                <div class="mods-list pane-list"></div>
+                <div class="mods-drop-overlay">
+                    <div class="mods-drop-box">Déposez vos packs de textures (<b>.zip</b> ou dossier) pour les ajouter</div>
+                </div>
+            </div>
+
+            <div class="edit-pane edit-pane-shaderpacks content-pane" data-kind="shaderpacks">
+                <div class="mods-toolbar">
+                    <div class="mods-search-box">
+                        <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+                        <input type="text" class="mods-search pane-search" placeholder="Rechercher un pack de shaders..." spellcheck="false"/>
+                    </div>
+                    <div class="btn-small btn-ghost pane-folder">Ouvrir le dossier</div>
+                    <div class="btn-small pane-import">+ Importer des shaders</div>
+                    <input type="file" class="mods-file pane-file" accept=".zip" multiple/>
+                </div>
+                <div class="pane-banner"></div>
+                <div class="mods-summary pane-summary"></div>
+                <div class="mods-list pane-list"></div>
+                <div class="mods-drop-overlay">
+                    <div class="mods-drop-box">Déposez vos packs de shaders (<b>.zip</b> ou dossier) pour les ajouter</div>
                 </div>
             </div>
 

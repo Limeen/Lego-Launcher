@@ -1,7 +1,7 @@
 /**
  * Fenêtre d'édition d'une instance personnelle :
- *  - onglet Mods : liste avec activation, suppression, import (bouton ou glisser-déposer)
- *    et vérification de compatibilité avant ajout ;
+ *  - onglets Mods, Packs de textures et Shaders : liste avec activation, suppression, import
+ *    (bouton ou glisser-déposer) et vérification de compatibilité avant ajout ;
  *  - onglet Paramètres : nom, couleur, version, loader, Fabric API, suppression.
  */
 
@@ -9,6 +9,10 @@ import InstanceForm, { escapeHTML, initials, loaderLabel } from '../utils/instan
 import { confirmDialog, reasonsList } from '../utils/dialog.js'
 import { listMods, setModEnabled, importMod, deleteMod, readModInfo, checkCompatibility, modsFolder } from '../utils/mods.js'
 import { instanceFolder, validateName, updateLocalInstance, deleteLocalInstance } from '../utils/instances.js'
+import {
+    PACK_FOLDERS, listPacks, importPack, deletePack, readResourcePack, readShaderPack, packCompatibility, gameResourceFormat,
+    formatRangeLabel, activeResourcePacks, setResourcePackEnabled, shaderLoader, activeShaderPack, setActiveShaderPack
+} from '../utils/packs.js'
 
 const { shell } = require('electron')
 const fs = require('fs')
@@ -16,6 +20,14 @@ const path = require('path')
 
 const ICON_TRASH = '<svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z"/></svg>'
 const ICON_PUZZLE = '<svg viewBox="0 0 24 24"><path d="M10 3a2 2 0 0 1 2 2v1h4a1 1 0 0 1 1 1v4h1a2 2 0 1 1 0 4h-1v4a1 1 0 0 1-1 1h-4v-1a2 2 0 1 0-4 0v1H4a1 1 0 0 1-1-1v-4h1a2 2 0 1 0 0-4H3V7a1 1 0 0 1 1-1h4V5a2 2 0 0 1 2-2z"/></svg>'
+const ICON_IMAGE = '<svg viewBox="0 0 24 24"><path d="M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v10.6l4-4 3 3 4-5 3 3.8V6zm4 1.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>'
+const ICON_SUN = '<svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 2.8l2.1 2.1-1.4 1.4-2.1-2.1zm14.9 14.9 2.1 2.1-1.4 1.4-2.1-2.1zM2.8 19.8l2.1-2.1 1.4 1.4-2.1 2.1zM17.7 4.9l2.1-2.1 1.4 1.4-2.1 2.1z"/></svg>'
+
+/** Textes propres à chaque type de pack. */
+const PACK_TEXT = {
+    resourcepacks: { one: 'pack de textures', icon: ICON_IMAGE, empty: 'Aucun pack de textures' },
+    shaderpacks: { one: 'pack de shaders', icon: ICON_SUN, empty: 'Aucun pack de shaders' }
+}
 
 export default class InstanceEditor {
     constructor(home) {
@@ -23,6 +35,7 @@ export default class InstanceEditor {
         this.root = document.querySelector('.edit-popup')
         this.instance = null
         this.mods = []
+        this.packs = { resourcepacks: [], shaderpacks: [] }
         this.formLoaded = false
         this.form = new InstanceForm(this.root.querySelector('.edit-general'), { onChange: () => this.updateSaveState() })
         this.bind()
@@ -32,12 +45,27 @@ export default class InstanceEditor {
         return instanceFolder(this.home.gamePath, this.instance)
     }
 
+    /** Version de Minecraft de l'instance. */
+    get mcVersion() {
+        return this.instance.loadder?.minecraft_version
+    }
+
+    /** L'instance a-t-elle un mod loader ? */
+    get modded() {
+        return (this.instance.loadder?.loadder_type || 'none') !== 'none'
+    }
+
     /** Raccourci querySelector limité à la fenêtre d'édition. */
     q(selector) {
         return this.root.querySelector(selector)
     }
 
-    /** Branche les onglets, la liste des mods, l'import (bouton et glisser-déposer) et les paramètres. */
+    /** Onglet de contenu d'un type donné. */
+    pane(kind) {
+        return this.q(`.content-pane[data-kind="${kind}"]`)
+    }
+
+    /** Branche les onglets, les listes de contenu et les paramètres. */
     bind() {
         let close = () => this.close()
         this.q('.edit-close').addEventListener('click', close)
@@ -49,38 +77,53 @@ export default class InstanceEditor {
             if (btn) this.showTab(btn.dataset.tab)
         })
 
-        // --- Mods ---
-        this.q('.mods-search').addEventListener('input', () => this.renderMods())
-        this.q('.mods-open-folder').addEventListener('click', () => {
-            fs.mkdirSync(modsFolder(this.dir), { recursive: true })
-            shell.openPath(modsFolder(this.dir))
+        this.root.querySelectorAll('.content-pane').forEach(pane => this.bindPane(pane))
+
+        // --- Paramètres ---
+        this.q('.edit-save').addEventListener('click', () => this.save())
+        this.q('.edit-delete').addEventListener('click', () => this.deleteInstance())
+    }
+
+    /**
+     * Branche un onglet de contenu (mods, packs de textures ou shaders) : recherche, dossier,
+     * import par bouton ou glisser-déposer, activation et suppression.
+     * @param {HTMLElement} pane
+     */
+    bindPane(pane) {
+        let kind = pane.dataset.kind
+        let q = selector => pane.querySelector(selector)
+
+        q('.pane-search').addEventListener('input', () => this.render(kind))
+        q('.pane-folder').addEventListener('click', () => {
+            let dir = this.folderOf(kind)
+            fs.mkdirSync(dir, { recursive: true })
+            shell.openPath(dir)
         })
-        let fileInput = this.q('.mods-file')
-        this.q('.mods-import').addEventListener('click', () => {
+        let fileInput = q('.pane-file')
+        q('.pane-import').addEventListener('click', () => {
             fileInput.value = ''
             fileInput.click()
         })
         fileInput.addEventListener('change', () => {
             let files = [...fileInput.files].map(f => f.path).filter(Boolean)
-            if (files.length) this.importFiles(files)
+            if (files.length) this.importFiles(kind, files)
         })
 
-        this.q('.mods-list').addEventListener('click', e => {
-            let row = e.target.closest('.mod-row')
-            if (!row) return
-            let mod = this.mods.find(m => m.file === row.dataset.file)
-            if (!mod) return
-            if (e.target.closest('.mod-delete')) return this.removeMod(mod)
+        let itemOf = el => {
+            let row = el.closest('.mod-row')
+            return row && this.itemsOf(kind).find(m => m.file === row.dataset.file)
+        }
+        q('.pane-list').addEventListener('click', e => {
+            let item = itemOf(e.target)
+            if (item && e.target.closest('.mod-delete')) this.removeItem(kind, item)
         })
-        this.q('.mods-list').addEventListener('change', e => {
+        q('.pane-list').addEventListener('change', e => {
             let toggle = e.target.closest('.mod-toggle')
-            if (!toggle) return
-            let mod = this.mods.find(m => m.file === toggle.closest('.mod-row').dataset.file)
-            if (mod) this.toggleMod(mod, toggle.checked)
+            let item = toggle && itemOf(toggle)
+            if (item) this.toggleItem(kind, item, toggle.checked)
         })
 
-        // Glisser-déposer de .jar sur l'onglet Mods
-        let pane = this.q('.edit-pane-mods')
+        // Glisser-déposer de fichiers (ou de dossiers pour les packs)
         let depth = 0
         pane.addEventListener('dragenter', e => {
             if (!this.hasFiles(e)) return
@@ -98,12 +141,8 @@ export default class InstanceEditor {
             depth = 0
             pane.classList.remove('dragging')
             let files = [...(e.dataTransfer?.files || [])].map(f => f.path).filter(Boolean)
-            if (files.length) this.importFiles(files)
+            if (files.length) this.importFiles(kind, files)
         })
-
-        // --- Paramètres ---
-        this.q('.edit-save').addEventListener('click', () => this.save())
-        this.q('.edit-delete').addEventListener('click', () => this.deleteInstance())
     }
 
     /** L'élément glissé contient-il des fichiers ? */
@@ -111,15 +150,45 @@ export default class InstanceEditor {
         return [...(e.dataTransfer?.types || [])].includes('Files')
     }
 
+    /** Dossier d'un type de contenu dans l'instance. */
+    folderOf(kind) {
+        return kind === 'mods' ? modsFolder(this.dir) : `${this.dir}/${PACK_FOLDERS[kind]}`
+    }
+
+    /** Éléments affichés dans un onglet de contenu. */
+    itemsOf(kind) {
+        return kind === 'mods' ? this.mods : this.packs[kind]
+    }
+
+    /** Affiche un onglet de contenu (après une recherche par exemple). */
+    render(kind) {
+        return kind === 'mods' ? this.renderMods() : this.renderPacks(kind)
+    }
+
+    /** Active / désactive un élément. */
+    toggleItem(kind, item, enabled) {
+        return kind === 'mods' ? this.toggleMod(item, enabled) : this.togglePack(kind, item, enabled)
+    }
+
+    /** Supprime un élément après confirmation. */
+    removeItem(kind, item) {
+        return kind === 'mods' ? this.removeMod(item) : this.removePack(kind, item)
+    }
+
+    /** Importe des fichiers dans un onglet de contenu. */
+    importFiles(kind, files) {
+        return kind === 'mods' ? this.importMods(files) : this.importPacks(kind, files)
+    }
+
     /**
      * Ouvre l'éditeur pour une instance.
      * @param {object} instance Instance locale
-     * @param {"mods"|"general"} [tab]
+     * @param {"mods"|"resourcepacks"|"shaderpacks"|"general"} [tab]
      */
     open(instance, tab = 'mods') {
         this.instance = instance
         this.formLoaded = false
-        this.q('.mods-search').value = ''
+        this.root.querySelectorAll('.pane-search').forEach(input => input.value = '')
         this.renderHeader()
         this.form.reset(instance.loadder ? {
             name: instance.name,
@@ -129,7 +198,7 @@ export default class InstanceEditor {
             loadder_version: instance.loadder.loadder_version,
             fabricApi: instance.fabricApi || null
         } : {})
-        this.refreshMods()
+        this.refreshAll()
         this.showTab(tab)
         this.home.openPopup('.edit-popup')
     }
@@ -139,11 +208,19 @@ export default class InstanceEditor {
         this.home.closePopup('.edit-popup')
     }
 
+    /** Relit tous les onglets de contenu (les shaders ne sont proposés qu'aux instances moddées). */
+    refreshAll() {
+        this.q('.edit-tab-shaders').classList.toggle('hidden', !this.modded)
+        this.refreshMods()
+        this.refreshPacks('resourcepacks')
+    }
+
     /**
      * Affiche un onglet ; les versions ne sont chargées qu'à la première ouverture des paramètres.
-     * @param {"mods"|"general"} tab
+     * @param {"mods"|"resourcepacks"|"shaderpacks"|"general"} tab
      */
     showTab(tab) {
+        if (tab === 'shaderpacks' && !this.modded) tab = 'mods'
         this.root.querySelectorAll('.edit-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
         this.root.querySelectorAll('.edit-pane').forEach(p => p.classList.toggle('active', p.classList.contains(`edit-pane-${tab}`)))
         if (tab === 'general' && !this.formLoaded) {
@@ -158,6 +235,31 @@ export default class InstanceEditor {
         this.home.iconHTML(i, this.q('.edit-icon'))
         this.q('.edit-title').textContent = i.name
         this.q('.edit-subtitle').innerHTML = `<span class="loader-badge loader-${escapeHTML(i.loadder?.loadder_type || 'none')}">${escapeHTML(loaderLabel(i))}</span> Minecraft ${escapeHTML(i.loadder?.minecraft_version)}`
+    }
+
+    /**
+     * Ligne d'une liste de contenu.
+     * @param {{file: string, enabled: boolean, icon: string|null, letter: string, name: string, version?: string, badge?: string, meta: string, title?: string, toggleDisabled?: boolean, toggleTitle?: string}} row
+     */
+    rowHTML(row) {
+        let icon = row.icon
+            ? `<div class="mod-icon" style="background-image:url('${row.icon}')"></div>`
+            : `<div class="mod-icon mod-icon-letter">${escapeHTML(initials(row.letter))}</div>`
+        return `
+            <div class="mod-row${row.enabled || row.noDim ? '' : ' disabled'}" data-file="${escapeHTML(row.file)}">
+                ${icon}
+                <div class="mod-body">
+                    <div class="mod-name">${escapeHTML(row.name)} <span class="mod-version">${escapeHTML(row.version || '')}</span> ${row.badge || ''}</div>
+                    <div class="mod-meta" title="${escapeHTML(row.title || row.meta)}">${escapeHTML(row.meta)}</div>
+                </div>
+                <label class="switch${row.toggleDisabled ? ' locked' : ''}" title="${escapeHTML(row.toggleTitle || (row.enabled ? 'Désactiver' : 'Activer'))}"><input type="checkbox" class="mod-toggle"${row.enabled ? ' checked' : ''}${row.toggleDisabled ? ' disabled' : ''}/><span></span></label>
+                <div class="icon-btn danger mod-delete" title="Supprimer">${ICON_TRASH}</div>
+            </div>`
+    }
+
+    /** Recherche saisie dans un onglet. */
+    searchOf(kind) {
+        return this.pane(kind).querySelector('.pane-search').value.trim().toLowerCase()
     }
 
     /* ------------------------------------------------------------------ */
@@ -176,22 +278,24 @@ export default class InstanceEditor {
             mod.compat = mod.enabled ? checkCompatibility(mod.info, this.instance, this.mods) : null
         }
         this.renderMods()
+        // Les shaders dépendent des mods installés (Iris, Oculus, OptiFine).
+        if (this.modded) this.refreshPacks('shaderpacks')
     }
 
     /** Affiche la liste des mods (filtrée par la recherche) avec leurs badges. */
     renderMods() {
-        let list = this.q('.mods-list')
-        let search = this.q('.mods-search').value.trim().toLowerCase()
-        let vanilla = (this.instance.loadder?.loadder_type || 'none') === 'none'
+        let pane = this.pane('mods')
+        let list = pane.querySelector('.pane-list')
+        let search = this.searchOf('mods')
         let enabled = this.mods.filter(m => m.enabled).length
         let problems = this.mods.filter(m => m.compat && (m.compat.errors.length || m.compat.warnings.length)).length
 
-        this.q('.edit-mods-count').textContent = this.mods.length
-        this.q('.mods-summary').innerHTML = this.mods.length
+        this.q('[data-count="mods"]').textContent = this.mods.length
+        pane.querySelector('.pane-summary').innerHTML = this.mods.length
             ? `${enabled} actif${enabled > 1 ? 's' : ''} sur ${this.mods.length}${problems ? ` · <span class="orange">${problems} à vérifier</span>` : ''}`
             : ''
 
-        if (vanilla) {
+        if (!this.modded) {
             list.innerHTML = `<div class="mods-empty">${ICON_PUZZLE}<b>Instance Vanilla</b>Les mods nécessitent un mod loader. Choisissez Fabric, Quilt, Forge ou NeoForge dans <a class="mods-goto-general">Paramètres de l'instance</a>.</div>`
             list.querySelector('.mods-goto-general').onclick = () => this.showTab('general')
             return
@@ -212,32 +316,30 @@ export default class InstanceEditor {
 
         list.innerHTML = shown.map(mod => {
             let info = mod.info || {}
-            let badges = ''
+            let badge = ''
             let detail = ''
             if (!mod.enabled) {
-                badges = '<span class="mod-badge off">Désactivé</span>'
+                badge = '<span class="mod-badge off">Désactivé</span>'
             } else if (mod.compat?.errors.length) {
-                badges = '<span class="mod-badge error">Incompatible</span>'
+                badge = '<span class="mod-badge error">Incompatible</span>'
                 detail = mod.compat.errors[0]
             } else if (mod.compat?.warnings.length) {
-                badges = '<span class="mod-badge warn">Dépendance manquante</span>'
+                badge = '<span class="mod-badge warn">Dépendance manquante</span>'
                 detail = mod.compat.warnings[0]
             } else if (mod.compat?.unknown) {
-                badges = '<span class="mod-badge muted">Non vérifié</span>'
+                badge = '<span class="mod-badge muted">Non vérifié</span>'
             }
-            let icon = info.icon
-                ? `<div class="mod-icon" style="background-image:url('${info.icon}')"></div>`
-                : `<div class="mod-icon mod-icon-letter">${escapeHTML(initials(info.name || mod.file))}</div>`
-            return `
-                <div class="mod-row${mod.enabled ? '' : ' disabled'}" data-file="${escapeHTML(mod.file)}">
-                    ${icon}
-                    <div class="mod-body">
-                        <div class="mod-name">${escapeHTML(info.name || mod.file)} <span class="mod-version">${escapeHTML(info.version || '')}</span> ${badges}</div>
-                        <div class="mod-meta" title="${escapeHTML(detail || mod.file)}">${escapeHTML(detail || mod.file.replace(/\.disabled$/i, ''))}</div>
-                    </div>
-                    <label class="switch" title="${mod.enabled ? 'Désactiver' : 'Activer'}"><input type="checkbox" class="mod-toggle"${mod.enabled ? ' checked' : ''}/><span></span></label>
-                    <div class="icon-btn danger mod-delete" title="Supprimer">${ICON_TRASH}</div>
-                </div>`
+            return this.rowHTML({
+                file: mod.file,
+                enabled: mod.enabled,
+                icon: info.icon,
+                letter: info.name || mod.file,
+                name: info.name || mod.file,
+                version: info.version,
+                badge,
+                meta: detail || mod.file.replace(/\.disabled$/i, ''),
+                title: detail || mod.file
+            })
         }).join('')
     }
 
@@ -276,7 +378,7 @@ export default class InstanceEditor {
     }
 
     /** Import avec vérification : demande confirmation pour chaque mod incompatible ou inconnu. */
-    async importFiles(files) {
+    async importMods(files) {
         let added = 0
         for (let file of files) {
             if (!/\.jar$/i.test(file)) {
@@ -335,6 +437,249 @@ export default class InstanceEditor {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Packs de textures et shaders                                        */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Relit un dossier de packs, l'état d'activation (options.txt, config du mod de shaders)
+     * et la compatibilité de chaque pack.
+     * @param {"resourcepacks"|"shaderpacks"} kind
+     */
+    refreshPacks(kind) {
+        let packs = []
+        try {
+            packs = listPacks(this.dir, kind)
+        } catch (err) {
+            console.error(`[${kind}]`, err)
+        }
+
+        if (kind === 'resourcepacks') {
+            this.gameFormat = gameResourceFormat(this.home.gamePath, this.mcVersion)
+            let active = activeResourcePacks(this.dir, this.mcVersion)
+            for (let pack of packs) {
+                pack.compat = packCompatibility(pack.info, this.gameFormat)
+                pack.priority = active.indexOf(pack.file)
+                pack.enabled = pack.priority >= 0
+            }
+            // Packs actifs en premier, du plus prioritaire au moins prioritaire (comme dans le jeu).
+            packs.sort((a, b) => (b.priority - a.priority) || 0)
+        } else {
+            this.shaderLoader = shaderLoader(this.mods)
+            let active = activeShaderPack(this.dir, this.shaderLoader)
+            for (let pack of packs) {
+                pack.compat = pack.info?.invalid ? 'invalid' : 'ok'
+                pack.enabled = !!this.shaderLoader && pack.file === active
+            }
+        }
+        this.packs[kind] = packs
+        this.renderPacks(kind)
+    }
+
+    /**
+     * Raison lisible d'un problème de pack (null si compatible).
+     * @param {object} pack
+     * @param {"resourcepacks"|"shaderpacks"} kind
+     */
+    packProblem(pack, kind) {
+        let info = pack.info || {}
+        if (pack.compat === 'invalid') {
+            if (info.nestedIn) return `Le pack est rangé dans le sous-dossier « ${info.nestedIn} » : le jeu ne le reconnaîtra pas.`
+            return kind === 'shaderpacks'
+                ? "Ce n'est pas un pack de shaders (dossier shaders/ introuvable)."
+                : "Ce n'est pas un pack de textures (pack.mcmeta introuvable)."
+        }
+        if (pack.compat === 'old') return `Prévu pour ${formatRangeLabel(info.range)}, l'instance est en ${this.mcVersion}.`
+        if (pack.compat === 'new') return `Prévu pour ${formatRangeLabel(info.range)}, plus récent que l'instance (${this.mcVersion}).`
+        return null
+    }
+
+    /**
+     * Affiche une liste de packs.
+     * @param {"resourcepacks"|"shaderpacks"} kind
+     */
+    renderPacks(kind) {
+        let pane = this.pane(kind)
+        let list = pane.querySelector('.pane-list')
+        let banner = pane.querySelector('.pane-banner')
+        let text = PACK_TEXT[kind]
+        let packs = this.packs[kind]
+        let search = this.searchOf(kind)
+        let shaders = kind === 'shaderpacks'
+
+        this.q(`[data-count="${kind}"]`).textContent = packs.length
+
+        // Bandeau : mod de shaders utilisé ou manquant.
+        if (shaders) {
+            banner.className = `pane-banner visible${this.shaderLoader ? '' : ' warn'}`
+            banner.innerHTML = this.shaderLoader
+                ? `Shaders chargés par <b>${escapeHTML(this.shaderLoader.name)}</b>. Un seul pack peut être actif à la fois.`
+                : `Aucun mod de shaders actif. Installez <b>Iris</b> (Fabric, Quilt, NeoForge) ou <b>Oculus</b> / <b>OptiFine</b> (Forge) dans l'onglet <a class="pane-goto-mods">Mods</a> pour utiliser vos shaders.`
+            let link = banner.querySelector('.pane-goto-mods')
+            if (link) link.onclick = () => this.showTab('mods')
+        } else {
+            banner.className = 'pane-banner'
+            banner.innerHTML = ''
+        }
+
+        let enabled = packs.filter(p => p.enabled).length
+        let problems = packs.filter(p => this.packProblem(p, kind)).length
+        pane.querySelector('.pane-summary').innerHTML = packs.length
+            ? (shaders
+                ? (enabled ? `1 pack actif sur ${packs.length}` : `Shaders désactivés · ${packs.length} pack${packs.length > 1 ? 's' : ''}`)
+                : `${enabled} actif${enabled > 1 ? 's' : ''} sur ${packs.length}`)
+                + (problems ? ` · <span class="orange">${problems} à vérifier</span>` : '')
+            : ''
+
+        if (!packs.length) {
+            list.innerHTML = `<div class="mods-empty">${text.icon}<b>${text.empty}</b>Cliquez sur « Importer » ou glissez vos fichiers .zip (ou dossiers) ici.<br>${shaders
+                ? 'Le launcher vérifie que le pack est valide et qu\'un mod de shaders est installé.'
+                : 'La compatibilité avec la version du jeu est vérifiée automatiquement.'}</div>`
+            return
+        }
+
+        let shown = packs.filter(p => !search
+            || p.file.toLowerCase().includes(search)
+            || String(p.info?.description || '').toLowerCase().includes(search))
+        if (!shown.length) {
+            list.innerHTML = `<div class="mods-empty"><b>Aucun résultat</b>Aucun ${text.one} ne correspond à votre recherche.</div>`
+            return
+        }
+
+        list.innerHTML = shown.map(pack => {
+            let info = pack.info || {}
+            let problem = this.packProblem(pack, kind)
+            let badge = ''
+            if (pack.compat === 'invalid') badge = '<span class="mod-badge error">Invalide</span>'
+            else if (pack.compat === 'old') badge = '<span class="mod-badge warn">Ancienne version</span>'
+            else if (pack.compat === 'new') badge = '<span class="mod-badge warn">Version plus récente</span>'
+            else if (pack.compat === 'unknown') badge = '<span class="mod-badge muted">Non vérifié</span>'
+            if (pack.enabled && !shaders && pack.priority === Math.max(...packs.map(p => p.priority)) && enabled > 1) {
+                badge += '<span class="mod-badge active">Prioritaire</span>'
+            }
+            let meta = problem || info.description || (pack.folder ? 'Dossier' : pack.file)
+            return this.rowHTML({
+                file: pack.file,
+                enabled: pack.enabled,
+                icon: info.icon,
+                letter: info.name || pack.file,
+                name: info.name || pack.file,
+                badge,
+                meta,
+                title: problem || info.description || pack.file,
+                noDim: true,
+                toggleDisabled: shaders && !this.shaderLoader,
+                toggleTitle: shaders && !this.shaderLoader ? 'Installez un mod de shaders pour activer ce pack' : (pack.enabled ? 'Désactiver' : 'Activer')
+            })
+        }).join('')
+    }
+
+    /**
+     * Active ou désactive un pack. Pour les shaders, activer un pack remplace le précédent.
+     * @param {"resourcepacks"|"shaderpacks"} kind
+     */
+    async togglePack(kind, pack, enabled) {
+        try {
+            if (kind === 'resourcepacks') {
+                setResourcePackEnabled(this.dir, this.mcVersion, pack.file, enabled, pack.compat === 'old' || pack.compat === 'new')
+            } else if (this.shaderLoader) {
+                setActiveShaderPack(this.dir, this.shaderLoader, enabled ? pack.file : null)
+            }
+        } catch (err) {
+            this.home.showError(`Impossible de modifier ce pack : ${escapeHTML(err.message)}`)
+        }
+        this.refreshPacks(kind)
+    }
+
+    /**
+     * Supprime un pack (archive ou dossier) après confirmation.
+     * @param {"resourcepacks"|"shaderpacks"} kind
+     */
+    async removePack(kind, pack) {
+        let { confirmed } = await confirmDialog({
+            title: `Supprimer ce ${PACK_TEXT[kind].one} ?`,
+            html: `<b>${escapeHTML(pack.file)}</b> sera supprimé de l'instance.`,
+            confirmText: 'Supprimer',
+            danger: true
+        })
+        if (!confirmed) return
+        try {
+            if (pack.enabled) {
+                if (kind === 'resourcepacks') setResourcePackEnabled(this.dir, this.mcVersion, pack.file, false)
+                else if (this.shaderLoader) setActiveShaderPack(this.dir, this.shaderLoader, null)
+            }
+            deletePack(this.dir, kind, pack.file)
+        } catch (err) {
+            this.home.showError(`Suppression impossible : ${escapeHTML(err.message)}`)
+        }
+        this.refreshPacks(kind)
+    }
+
+    /**
+     * Import de packs avec vérification : confirmation pour un pack invalide, prévu pour une autre
+     * version, ou un shader sans mod de shaders.
+     * @param {"resourcepacks"|"shaderpacks"} kind
+     * @param {string[]} files Archives .zip ou dossiers
+     */
+    async importPacks(kind, files) {
+        let text = PACK_TEXT[kind]
+        let shaders = kind === 'shaderpacks'
+        let warnedLoader = false
+        for (let file of files) {
+            let base = path.basename(file)
+            let isDir = false
+            try { isDir = fs.statSync(file).isDirectory() } catch { continue }
+            if (!isDir && !/\.zip$/i.test(file)) {
+                await confirmDialog({ title: 'Fichier ignoré', html: `<b>${escapeHTML(base)}</b> n'est pas un ${text.one} (.zip ou dossier).`, confirmText: 'OK', cancelText: 'Fermer' })
+                continue
+            }
+
+            let info = shaders ? readShaderPack(file) : readResourcePack(file)
+            let pack = { info, compat: shaders ? (info?.invalid ? 'invalid' : 'ok') : packCompatibility(info, this.gameFormat) }
+            let problem = this.packProblem(pack, kind)
+            let name = escapeHTML(base)
+
+            if (pack.compat === 'invalid') {
+                let { confirmed } = await confirmDialog({
+                    title: shaders ? 'Pack de shaders invalide' : 'Pack de textures invalide',
+                    html: `<b>${name}</b> :${reasonsList([problem])}${info?.nestedIn ? 'Extrayez ce sous-dossier, ou recompressez son contenu, puis réessayez.' : `Ce fichier ne sera pas reconnu comme ${text.one} par le jeu.`}`,
+                    confirmText: 'Ajouter quand même',
+                    danger: true
+                })
+                if (!confirmed) continue
+            } else if (pack.compat === 'old' || pack.compat === 'new') {
+                let { confirmed } = await confirmDialog({
+                    title: 'Pack prévu pour une autre version',
+                    html: `<b>${name}</b> n'est pas prévu pour cette version :${reasonsList([problem])}Le jeu le signalera comme incompatible : certaines textures peuvent manquer ou s'afficher incorrectement.`,
+                    confirmText: 'Ajouter quand même'
+                })
+                if (!confirmed) continue
+            } else if (shaders && !this.shaderLoader && !warnedLoader) {
+                warnedLoader = true
+                let { confirmed } = await confirmDialog({
+                    title: 'Aucun mod de shaders',
+                    html: `Pour utiliser <b>${name}</b>, l'instance a besoin d'un mod de shaders : <b>Iris</b> (Fabric, Quilt, NeoForge) ou <b>Oculus</b> / <b>OptiFine</b> (Forge).<br>Le pack sera ajouté mais inutilisé tant qu'aucun n'est installé.`,
+                    confirmText: 'Ajouter quand même'
+                })
+                if (!confirmed) continue
+            }
+
+            let existing = this.packs[kind].find(p => p.file.toLowerCase() === base.toLowerCase())
+            if (existing) {
+                let { confirmed } = await confirmDialog({ title: 'Déjà présent', html: `<b>${name}</b> est déjà dans cette instance. Le remplacer ?`, confirmText: 'Remplacer' })
+                if (!confirmed) continue
+                try { deletePack(this.dir, kind, existing.file) } catch { }
+            }
+
+            try {
+                importPack(this.dir, kind, file)
+            } catch (err) {
+                this.home.showError(`Import de ${name} impossible : ${escapeHTML(err.message)}`)
+            }
+            this.refreshPacks(kind)
+        }
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Paramètres                                                          */
     /* ------------------------------------------------------------------ */
 
@@ -361,7 +706,7 @@ export default class InstanceEditor {
         let c = this.changes()
         let changed = c.name || c.color || c.version || c.api
         this.q('.edit-save').classList.toggle('disabled', !changed || !this.form.ready())
-        this.q('.edit-version-note').classList.toggle('visible', c.version && this.mods.length > 0)
+        this.q('.edit-version-note').classList.toggle('visible', c.version && (this.mods.length > 0 || this.packs.resourcepacks.length > 0))
     }
 
     /** Enregistre les paramètres (renommage du dossier, changement de version après confirmation). */
@@ -408,7 +753,7 @@ export default class InstanceEditor {
             this.formLoaded = false
             this.showTab('general')
             this.renderHeader()
-            this.refreshMods()
+            this.refreshAll()
         } catch (err) {
             console.error(err)
             this.form.setError(err.message)
@@ -423,7 +768,7 @@ export default class InstanceEditor {
         let { confirmed, checked } = await confirmDialog({
             title: "Supprimer l'instance ?",
             html: `L'instance <b>${escapeHTML(this.instance.name)}</b> sera retirée du launcher.`,
-            checkbox: 'Supprimer aussi ses fichiers (mods, configs...). Les mondes partagés sont conservés.',
+            checkbox: 'Supprimer aussi ses fichiers (mods, packs, configs...). Les mondes partagés sont conservés.',
             confirmText: 'Supprimer',
             danger: true
         })
