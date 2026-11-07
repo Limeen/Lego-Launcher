@@ -1,5 +1,5 @@
 /**
- * Formulaire d'instance (nom, couleur, version de Minecraft, loader, Fabric API),
+ * Formulaire d'instance (nom, icône ou couleur, version de Minecraft, loader, Fabric API),
  * partagé par la fenêtre de création et celle d'édition.
  * Tous les éléments sont cherchés dans `root` avec les mêmes classes CSS.
  */
@@ -26,6 +26,39 @@ export function initials(name) {
     return String(name).slice(0, 2).toUpperCase();
 }
 
+/** Taille (en pixels) des icônes personnalisées enregistrées. */
+const ICON_SIZE = 128;
+
+/**
+ * Lit une image et la recadre au centre en carré de 128 px.
+ * @param {Blob} file Image choisie par le joueur (PNG, JPEG, WebP, GIF : première image)
+ * @returns {Promise<string>} Data URL PNG
+ */
+export async function loadIconImage(file) {
+    let bitmap = await createImageBitmap(file);
+    let side = Math.min(bitmap.width, bitmap.height);
+    let canvas = document.createElement('canvas');
+    canvas.width = canvas.height = ICON_SIZE;
+    let ctx = canvas.getContext('2d');
+    // Petites images (pixel art) : agrandies sans flou.
+    ctx.imageSmoothingEnabled = side >= ICON_SIZE;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, ICON_SIZE, ICON_SIZE);
+    bitmap.close?.();
+    return canvas.toDataURL('image/png');
+}
+
+/**
+ * Remplit une tuile d'icône : image personnalisée, ou initiales sur la couleur de l'instance.
+ * @param {HTMLElement} element
+ * @param {{icon?: string|null, color?: string, name?: string}} data
+ */
+export function paintIcon(element, { icon, color, name }) {
+    element.classList.toggle('custom-icon', !!icon);
+    element.style.background = icon ? `url("${icon}") center / cover` : (color || INSTANCE_COLORS[0]);
+    element.textContent = icon ? '' : initials(name || '?');
+}
+
 /**
  * Libellé du loader d'une instance (ex. « Fabric 0.16.14 », « Vanilla »).
  * @param {object} instance
@@ -47,6 +80,8 @@ export default class InstanceForm {
         this.el = {
             name: q('.create-name'),
             swatches: q('.color-swatches'),
+            iconFile: q('.icon-file'),
+            iconRemove: [...root.querySelectorAll('.icon-remove')],
             mcVersion: q('.create-mc-version'),
             snapshots: q('.create-snapshots'),
             loader: q('.create-loader'),
@@ -57,7 +92,7 @@ export default class InstanceForm {
             apiVersion: q('.create-fabricapi-version'),
             error: q('.create-error')
         };
-        this.state = { loader: 'none', color: INSTANCE_COLORS[0], loaderVersions: [], apiVersions: [] };
+        this.state = { loader: 'none', color: INSTANCE_COLORS[0], icon: null, loaderVersions: [], apiVersions: [] };
         this.preset = {};
         this.requestId = 0;
         this.bind();
@@ -71,8 +106,30 @@ export default class InstanceForm {
             let swatch = ev.target.closest('.swatch');
             if (!swatch) return;
             this.state.color = swatch.dataset.color;
+            this.state.icon = null; // une couleur remplace l'image
             this.update();
         });
+        if (e.iconFile) {
+            this.root.querySelectorAll('.icon-upload').forEach(el => el.addEventListener('click', () => {
+                e.iconFile.value = '';
+                e.iconFile.click();
+            }));
+            e.iconFile.addEventListener('change', async () => {
+                let file = e.iconFile.files[0];
+                if (!file) return;
+                try {
+                    this.state.icon = await loadIconImage(file);
+                    this.setError('');
+                } catch {
+                    this.setError("Cette image n'a pas pu être lue (formats acceptés : PNG, JPEG, WebP, GIF).");
+                }
+                this.update();
+            });
+            e.iconRemove.forEach(el => el.addEventListener('click', () => {
+                this.state.icon = null;
+                this.update();
+            }));
+        }
         e.loader.addEventListener('click', ev => {
             let segment = ev.target.closest('.segment');
             if (!segment || segment.classList.contains('active')) return;
@@ -89,9 +146,9 @@ export default class InstanceForm {
     }
 
     /** Pré-remplit le formulaire (création : valeurs par défaut, édition : l'instance). */
-    reset({ name = '', color = INSTANCE_COLORS[0], minecraft_version = null, loadder_type = 'none', loadder_version = null, fabricApi = undefined } = {}) {
+    reset({ name = '', color = INSTANCE_COLORS[0], icon = null, minecraft_version = null, loadder_type = 'none', loadder_version = null, fabricApi = undefined } = {}) {
         this.preset = { minecraft_version, loadder_version, fabricApi };
-        this.state = { loader: loadder_type, color, loaderVersions: [], apiVersions: [] };
+        this.state = { loader: loadder_type, color, icon, loaderVersions: [], apiVersions: [] };
         this.el.name.value = name;
         this.el.apiEnabled.checked = fabricApi !== null;
         this.el.snapshots.checked = false;
@@ -220,7 +277,7 @@ export default class InstanceForm {
 
     /**
      * Valeurs actuelles du formulaire, au format d'une instance.
-     * @returns {{name: string, color: string, minecraft_version: string, loadder_type: string, loadder_version: string, fabricApi: object|null}}
+     * @returns {{name: string, color: string, icon: string|null, minecraft_version: string, loadder_type: string, loadder_version: string, fabricApi: object|null}}
      */
     data() {
         let e = this.el;
@@ -230,6 +287,7 @@ export default class InstanceForm {
         return {
             name: e.name.value.trim(),
             color: this.state.color,
+            icon: this.state.icon || null,
             minecraft_version: e.mcVersion.value,
             loadder_type: loader,
             loadder_version: loader === 'none' ? 'latest' : e.loaderVersion.value,
@@ -252,7 +310,7 @@ export default class InstanceForm {
     /** Rafraîchit l'affichage (loader actif, couleur, champs visibles, aperçu) puis appelle `onChange`. */
     update() {
         let e = this.el;
-        let { loader, color } = this.state;
+        let { loader, color, icon: customIcon } = this.state;
         let data = this.data();
 
         e.loader.querySelectorAll('.segment').forEach(s => s.classList.toggle('active', s.dataset.loader === loader));
@@ -260,13 +318,18 @@ export default class InstanceForm {
         e.loaderField.style.display = loader === 'none' ? 'none' : '';
         e.apiField.style.display = loader === 'fabric' || loader === 'quilt' ? '' : 'none';
         e.apiVersion.classList.toggle('dimmed', !e.apiEnabled.checked);
+        e.iconRemove.forEach(el => el.style.display = customIcon ? '' : 'none');
+        e.swatches.classList.toggle('dimmed', !!customIcon);
+
+        // Icône de la fenêtre d'édition
+        let pickerIcon = this.root.querySelector('.icon-picker-preview');
+        if (pickerIcon) paintIcon(pickerIcon, { icon: customIcon, color, name: data.name || '?' });
 
         // Aperçu (fenêtre de création uniquement)
         let icon = this.root.querySelector('.preview-icon');
         if (icon) {
             let previewName = data.name || 'Mon instance';
-            icon.style.background = color;
-            icon.textContent = initials(previewName);
+            paintIcon(icon, { icon: customIcon, color, name: previewName });
             this.root.querySelector('.preview-name').textContent = previewName;
             let chips = [`<span class="loader-badge loader-${loader}">${escapeHTML(loaderLabel({ loadder: { loadder_type: loader, loadder_version: loader === 'none' || e.loaderVersion.disabled ? null : data.loadder_version, minecraft_version: data.minecraft_version } }))}</span>`];
             if (data.minecraft_version) chips.push(`<span class="chip">Minecraft ${escapeHTML(data.minecraft_version)}</span>`);

@@ -11,7 +11,7 @@ import { listMods, setModEnabled, importMod, deleteMod, readModInfo, checkCompat
 import { instanceFolder, validateName, updateLocalInstance, deleteLocalInstance } from '../utils/instances.js'
 import {
     PACK_FOLDERS, listPacks, importPack, deletePack, readResourcePack, readShaderPack, packCompatibility, gameResourceFormat,
-    formatRangeLabel, activeResourcePacks, setResourcePackEnabled, shaderLoader, activeShaderPack, setActiveShaderPack
+    formatRangeLabel, activeResourcePacks, setResourcePacks, shaderLoader, activeShaderPack, setActiveShaderPack, modrinthSearchUrl
 } from '../utils/packs.js'
 
 const { shell } = require('electron')
@@ -99,6 +99,10 @@ export default class InstanceEditor {
             fs.mkdirSync(dir, { recursive: true })
             shell.openPath(dir)
         })
+        q('.pane-modrinth').addEventListener('click', () => {
+            shell.openExternal(modrinthSearchUrl(kind, this.instance, kind === 'shaderpacks' ? this.shaderLoader : null))
+        })
+        if (kind === 'resourcepacks') this.bindPackSorting(q('.pane-list'))
         let fileInput = q('.pane-file')
         q('.pane-import').addEventListener('click', () => {
             fileInput.value = ''
@@ -145,6 +149,93 @@ export default class InstanceEditor {
         })
     }
 
+    /**
+     * Tri des packs de textures par glisser-déposer : réordonner les packs actifs, ou glisser un
+     * pack d'une section à l'autre pour l'activer / le désactiver.
+     * @param {HTMLElement} list
+     */
+    bindPackSorting(list) {
+        let clear = () => {
+            list.querySelectorAll('.drop-before, .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'))
+            list.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'))
+        }
+        /** Position de dépôt : zone visée et pack avant lequel insérer (null = à la fin). */
+        let target = e => {
+            let zone = e.target.closest('.pack-zone')
+            if (!zone) return null
+            let rows = [...zone.querySelectorAll('.mod-row')].filter(r => r.dataset.file !== this.dragFile)
+            let before = rows.find(r => {
+                let box = r.getBoundingClientRect()
+                return e.clientY < box.top + box.height / 2
+            })
+            return { zone, rows, before }
+        }
+
+        list.addEventListener('dragstart', e => {
+            let row = e.target.closest?.('.mod-row.sortable')
+            if (!row) return
+            this.dragFile = row.dataset.file
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('application/x-venstone-pack', row.dataset.file)
+            requestAnimationFrame(() => row.classList.add('dragged'))
+        })
+        list.addEventListener('dragover', e => {
+            if (!this.dragFile) return
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'move'
+            clear()
+            let t = target(e)
+            if (!t) return
+            t.zone.classList.add('drop-target')
+            if (t.zone.dataset.zone !== 'active') return
+            if (t.before) t.before.classList.add('drop-before')
+            else if (t.rows.length) t.rows[t.rows.length - 1].classList.add('drop-after')
+        })
+        list.addEventListener('dragleave', e => {
+            if (!list.contains(e.relatedTarget)) clear()
+        })
+        list.addEventListener('drop', e => {
+            if (!this.dragFile) return
+            e.preventDefault()
+            e.stopPropagation()
+            let t = target(e)
+            let file = this.dragFile
+            clear()
+            this.dragFile = null
+            if (!t) return
+            let order = this.activePackOrder().filter(f => f !== file)
+            if (t.zone.dataset.zone === 'active') {
+                let index = t.before ? order.indexOf(t.before.dataset.file) : order.length
+                order.splice(index < 0 ? order.length : index, 0, file)
+            }
+            this.writePackOrder(order)
+        })
+        list.addEventListener('dragend', () => {
+            clear()
+            this.dragFile = null
+            list.querySelectorAll('.dragged').forEach(el => el.classList.remove('dragged'))
+        })
+    }
+
+    /** Packs de textures actifs, du plus prioritaire au moins prioritaire. */
+    activePackOrder() {
+        return this.packs.resourcepacks.filter(p => p.enabled).sort((a, b) => a.rank - b.rank).map(p => p.file)
+    }
+
+    /**
+     * Enregistre les packs de textures actifs (du plus prioritaire au moins prioritaire).
+     * @param {string[]} files
+     */
+    writePackOrder(files) {
+        let incompatible = this.packs.resourcepacks.filter(p => p.compat === 'old' || p.compat === 'new').map(p => p.file)
+        try {
+            setResourcePacks(this.dir, this.mcVersion, files, incompatible)
+        } catch (err) {
+            this.home.showError(`Impossible de modifier les packs actifs : ${escapeHTML(err.message)}`)
+        }
+        this.refreshPacks('resourcepacks')
+    }
+
     /** L'élément glissé contient-il des fichiers ? */
     hasFiles(e) {
         return [...(e.dataTransfer?.types || [])].includes('Files')
@@ -185,7 +276,7 @@ export default class InstanceEditor {
      * @param {object} instance Instance locale
      * @param {"mods"|"resourcepacks"|"shaderpacks"|"general"} [tab]
      */
-    open(instance, tab = 'mods') {
+    open(instance, tab = null) {
         this.instance = instance
         this.formLoaded = false
         this.root.querySelectorAll('.pane-search').forEach(input => input.value = '')
@@ -193,13 +284,14 @@ export default class InstanceEditor {
         this.form.reset(instance.loadder ? {
             name: instance.name,
             color: instance.color,
+            icon: instance.icon || null,
             minecraft_version: instance.loadder.minecraft_version,
             loadder_type: instance.loadder.loadder_type || 'none',
             loadder_version: instance.loadder.loadder_version,
             fabricApi: instance.fabricApi || null
         } : {})
         this.refreshAll()
-        this.showTab(tab)
+        this.showTab(tab || (this.modded ? 'mods' : 'resourcepacks'))
         this.home.openPopup('.edit-popup')
     }
 
@@ -208,8 +300,9 @@ export default class InstanceEditor {
         this.home.closePopup('.edit-popup')
     }
 
-    /** Relit tous les onglets de contenu (les shaders ne sont proposés qu'aux instances moddées). */
+    /** Relit tous les onglets de contenu (mods et shaders ne sont proposés qu'aux instances moddées). */
     refreshAll() {
+        this.q('.edit-tab-mods').classList.toggle('hidden', !this.modded)
         this.q('.edit-tab-shaders').classList.toggle('hidden', !this.modded)
         this.refreshMods()
         this.refreshPacks('resourcepacks')
@@ -220,7 +313,7 @@ export default class InstanceEditor {
      * @param {"mods"|"resourcepacks"|"shaderpacks"|"general"} tab
      */
     showTab(tab) {
-        if (tab === 'shaderpacks' && !this.modded) tab = 'mods'
+        if ((tab === 'mods' || tab === 'shaderpacks') && !this.modded) tab = 'resourcepacks'
         this.root.querySelectorAll('.edit-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
         this.root.querySelectorAll('.edit-pane').forEach(p => p.classList.toggle('active', p.classList.contains(`edit-pane-${tab}`)))
         if (tab === 'general' && !this.formLoaded) {
@@ -239,14 +332,16 @@ export default class InstanceEditor {
 
     /**
      * Ligne d'une liste de contenu.
-     * @param {{file: string, enabled: boolean, icon: string|null, letter: string, name: string, version?: string, badge?: string, meta: string, title?: string, toggleDisabled?: boolean, toggleTitle?: string}} row
+     * @param {{file: string, enabled: boolean, icon: string|null, letter: string, name: string, version?: string, badge?: string, meta: string, title?: string, toggleDisabled?: boolean, toggleTitle?: string, sortable?: boolean, rank?: number}} row
      */
     rowHTML(row) {
         let icon = row.icon
             ? `<div class="mod-icon" style="background-image:url('${row.icon}')"></div>`
             : `<div class="mod-icon mod-icon-letter">${escapeHTML(initials(row.letter))}</div>`
         return `
-            <div class="mod-row${row.enabled || row.noDim ? '' : ' disabled'}" data-file="${escapeHTML(row.file)}">
+            <div class="mod-row${row.enabled || row.noDim ? '' : ' disabled'}${row.sortable ? ' sortable' : ''}" data-file="${escapeHTML(row.file)}"${row.sortable ? ' draggable="true"' : ''}>
+                ${row.sortable ? '<div class="pack-grip"></div>' : ''}
+                ${row.rank ? `<div class="pack-rank">${row.rank}</div>` : ''}
                 ${icon}
                 <div class="mod-body">
                     <div class="mod-name">${escapeHTML(row.name)} <span class="mod-version">${escapeHTML(row.version || '')}</span> ${row.badge || ''}</div>
@@ -455,14 +550,13 @@ export default class InstanceEditor {
 
         if (kind === 'resourcepacks') {
             this.gameFormat = gameResourceFormat(this.home.gamePath, this.mcVersion)
-            let active = activeResourcePacks(this.dir, this.mcVersion)
+            // Le jeu liste les packs du moins au plus prioritaire : rang 1 = le plus prioritaire.
+            let active = activeResourcePacks(this.dir, this.mcVersion).reverse()
             for (let pack of packs) {
                 pack.compat = packCompatibility(pack.info, this.gameFormat)
-                pack.priority = active.indexOf(pack.file)
-                pack.enabled = pack.priority >= 0
+                pack.rank = active.indexOf(pack.file) + 1
+                pack.enabled = pack.rank > 0
             }
-            // Packs actifs en premier, du plus prioritaire au moins prioritaire (comme dans le jeu).
-            packs.sort((a, b) => (b.priority - a.priority) || 0)
         } else {
             this.shaderLoader = shaderLoader(this.mods)
             let active = activeShaderPack(this.dir, this.shaderLoader)
@@ -545,7 +639,7 @@ export default class InstanceEditor {
             return
         }
 
-        list.innerHTML = shown.map(pack => {
+        let row = pack => {
             let info = pack.info || {}
             let problem = this.packProblem(pack, kind)
             let badge = ''
@@ -553,9 +647,6 @@ export default class InstanceEditor {
             else if (pack.compat === 'old') badge = '<span class="mod-badge warn">Ancienne version</span>'
             else if (pack.compat === 'new') badge = '<span class="mod-badge warn">Version plus récente</span>'
             else if (pack.compat === 'unknown') badge = '<span class="mod-badge muted">Non vérifié</span>'
-            if (pack.enabled && !shaders && pack.priority === Math.max(...packs.map(p => p.priority)) && enabled > 1) {
-                badge += '<span class="mod-badge active">Prioritaire</span>'
-            }
             let meta = problem || info.description || (pack.folder ? 'Dossier' : pack.file)
             return this.rowHTML({
                 file: pack.file,
@@ -568,9 +659,28 @@ export default class InstanceEditor {
                 title: problem || info.description || pack.file,
                 noDim: true,
                 toggleDisabled: shaders && !this.shaderLoader,
-                toggleTitle: shaders && !this.shaderLoader ? 'Installez un mod de shaders pour activer ce pack' : (pack.enabled ? 'Désactiver' : 'Activer')
+                toggleTitle: shaders && !this.shaderLoader ? 'Installez un mod de shaders pour activer ce pack' : (pack.enabled ? 'Désactiver' : 'Activer'),
+                sortable: !shaders && !search,
+                rank: !shaders && pack.enabled ? pack.rank : 0
             })
-        }).join('')
+        }
+
+        if (shaders) {
+            list.innerHTML = shown.map(row).join('')
+            return
+        }
+
+        // Packs de textures : actifs (ordre de priorité, triables) puis disponibles.
+        let active = shown.filter(p => p.enabled).sort((a, b) => a.rank - b.rank)
+        let inactive = shown.filter(p => !p.enabled)
+        let hint = search ? '' : ' <span>· le n°1 est prioritaire, glissez pour réordonner</span>'
+        list.innerHTML = `
+            <div class="pack-section">Actifs${active.length > 1 ? hint : ''}</div>
+            <div class="pack-zone" data-zone="active">${active.map(row).join('')
+                || `<div class="pack-zone-empty">${search ? 'Aucun pack actif ne correspond' : 'Activez un pack ou glissez-le ici'}</div>`}</div>
+            <div class="pack-section">Disponibles <span>· ${inactive.length}</span></div>
+            <div class="pack-zone" data-zone="inactive">${inactive.map(row).join('')
+                || `<div class="pack-zone-empty">${search ? 'Aucun pack disponible ne correspond' : 'Tous les packs sont actifs'}</div>`}</div>`
     }
 
     /**
@@ -580,7 +690,10 @@ export default class InstanceEditor {
     async togglePack(kind, pack, enabled) {
         try {
             if (kind === 'resourcepacks') {
-                setResourcePackEnabled(this.dir, this.mcVersion, pack.file, enabled, pack.compat === 'old' || pack.compat === 'new')
+                // Un pack activé passe en tête (comme dans le jeu).
+                let order = this.activePackOrder().filter(f => f !== pack.file)
+                if (enabled) order.unshift(pack.file)
+                return this.writePackOrder(order)
             } else if (this.shaderLoader) {
                 setActiveShaderPack(this.dir, this.shaderLoader, enabled ? pack.file : null)
             }
@@ -604,7 +717,7 @@ export default class InstanceEditor {
         if (!confirmed) return
         try {
             if (pack.enabled) {
-                if (kind === 'resourcepacks') setResourcePackEnabled(this.dir, this.mcVersion, pack.file, false)
+                if (kind === 'resourcepacks') this.writePackOrder(this.activePackOrder().filter(f => f !== pack.file))
                 else if (this.shaderLoader) setActiveShaderPack(this.dir, this.shaderLoader, null)
             }
             deletePack(this.dir, kind, pack.file)
@@ -685,7 +798,7 @@ export default class InstanceEditor {
 
     /**
      * Ce qui diffère entre le formulaire et l'instance enregistrée.
-     * @returns {{name: boolean, color: boolean, version: boolean, api: boolean}}
+     * @returns {{name: boolean, color: boolean, icon: boolean, version: boolean, api: boolean}}
      */
     changes() {
         let d = this.form.data()
@@ -693,6 +806,7 @@ export default class InstanceEditor {
         return {
             name: d.name !== i.name,
             color: d.color !== i.color,
+            icon: (d.icon || null) !== (i.icon || null),
             version: d.minecraft_version !== i.loadder.minecraft_version
                 || d.loadder_type !== (i.loadder.loadder_type || 'none')
                 || (d.loadder_type !== 'none' && d.loadder_version !== i.loadder.loadder_version),
@@ -704,7 +818,7 @@ export default class InstanceEditor {
     updateSaveState() {
         if (!this.instance) return
         let c = this.changes()
-        let changed = c.name || c.color || c.version || c.api
+        let changed = c.name || c.color || c.icon || c.version || c.api
         this.q('.edit-save').classList.toggle('disabled', !changed || !this.form.ready())
         this.q('.edit-version-note').classList.toggle('visible', c.version && (this.mods.length > 0 || this.packs.resourcepacks.length > 0))
     }
@@ -739,6 +853,7 @@ export default class InstanceEditor {
             let updated = await updateLocalInstance(this.instance.name, {
                 name,
                 color: d.color,
+                icon: d.icon,
                 loadder: {
                     minecraft_version: d.minecraft_version,
                     loadder_type: d.loadder_type,
@@ -749,7 +864,7 @@ export default class InstanceEditor {
             this.instance = updated
             if (wasSelected) await this.home.selectInstance(updated.name, { silent: true })
             await this.home.refreshInstances()
-            this.form.reset({ ...updated.loadder, name: updated.name, color: updated.color, fabricApi: updated.fabricApi || null })
+            this.form.reset({ ...updated.loadder, name: updated.name, color: updated.color, icon: updated.icon || null, fabricApi: updated.fabricApi || null })
             this.formLoaded = false
             this.showTab('general')
             this.renderHeader()

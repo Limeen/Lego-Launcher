@@ -9,7 +9,7 @@ import {
     INSTANCE_COLORS, getGamePath, getAllInstances, resolveInstanceSelection, isInstalled,
     launchCacheFile, instanceFolder, validateName, createLocalInstance, ensureFabricApi, hasInternet
 } from '../utils/instances.js'
-import InstanceForm, { escapeHTML, initials, loaderLabel } from '../utils/instanceForm.js'
+import InstanceForm, { escapeHTML, loaderLabel, paintIcon } from '../utils/instanceForm.js'
 import InstanceEditor from './instanceEditor.js'
 
 const { shell, ipcRenderer } = require('electron')
@@ -257,12 +257,12 @@ class Home {
     }
 
     /**
-     * Remplit l'icône d'une instance : logo Venstone ou initiales sur sa couleur.
+     * Remplit l'icône d'une instance : logo Venstone, image personnalisée ou initiales sur sa couleur.
      * @param {object} instance
      * @param {HTMLElement} element
      */
     iconHTML(instance, element) {
-        element.classList.remove('official-icon')
+        element.classList.remove('official-icon', 'custom-icon')
         element.style.background = ''
         element.innerHTML = ''
         if (!instance) {
@@ -271,8 +271,7 @@ class Home {
             element.classList.add('official-icon')
             element.innerHTML = '<img src="assets/images/icon.png"/>'
         } else {
-            element.style.background = instance.color || INSTANCE_COLORS[0]
-            element.textContent = initials(instance.name)
+            paintIcon(element, instance)
         }
     }
 

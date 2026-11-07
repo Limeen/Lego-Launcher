@@ -1542,3 +1542,261 @@ select.field-input option {
     padding: 8px 14px;
     font-size: 13px;
 }
+
+/* --- Boutons-icônes de la barre d'outils (dossier, Modrinth) --- */
+
+.tool-btn {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+    border-radius: 9px;
+    background: #353535;
+    border: solid 1px #4a4a4a;
+    cursor: pointer;
+    transition: background-color .25s, border-color .25s;
+}
+
+.tool-btn svg {
+    width: 17px;
+    height: 17px;
+    fill: #E1E1E1;
+}
+
+.tool-btn:hover {
+    background: #414141;
+}
+
+.tool-btn.pane-modrinth:hover {
+    background: #1bd96a26;
+    border-color: #1bd96a80;
+}
+
+.tool-btn.pane-modrinth:hover svg {
+    fill: #1bd96a;
+}
+
+/* Bulle d'aide au survol (même style que « Changer de skin ») */
+[data-tip] {
+    position: relative;
+}
+
+[data-tip]:after,
+[data-tip]:before {
+    position: absolute;
+    left: 50%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 20;
+}
+
+[data-tip]:after {
+    content: attr(data-tip);
+    bottom: calc(100% + 12px);
+    transform: translate(-50%, 4px);
+    padding: 6px 11px;
+    border-radius: 9px;
+    background: #292929;
+    border: solid 1px #3b3b3b;
+    box-shadow: 0 6px 18px #00000080;
+    color: #F1F1F1;
+    font: normal normal bold 12px/16px Poppins;
+    white-space: nowrap;
+}
+
+[data-tip]:before {
+    content: '';
+    bottom: calc(100% + 7px);
+    width: 9px;
+    height: 9px;
+    background: #292929;
+    border-right: solid 1px #3b3b3b;
+    border-bottom: solid 1px #3b3b3b;
+    transform: translate(-50%, 4px) rotate(45deg);
+}
+
+[data-tip]:hover:after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+[data-tip]:hover:before {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(45deg);
+}
+
+/* --- Packs de textures : sections actifs / disponibles, tri par glisser-déposer --- */
+
+.pack-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 2px 2px;
+    color: #9a9a9a;
+    font: normal normal bold 11px/16px Poppins;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+
+.pack-section:first-child {
+    margin-top: 0;
+}
+
+.pack-section span {
+    color: #6a6a6a;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.pack-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-height: 44px;
+    border-radius: 10px;
+    transition: background-color .2s, box-shadow .2s;
+}
+
+.pack-zone.drop-target {
+    background: #2379ee12;
+    box-shadow: inset 0 0 0 1px #2379ee66;
+}
+
+.pack-zone-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border: dashed 1px #3b3b3b;
+    border-radius: 10px;
+    color: #6a6a6a;
+    font: normal normal normal 12px/16px Poppins;
+    pointer-events: none;
+}
+
+.mod-row.sortable {
+    cursor: grab;
+}
+
+.mod-row.dragged {
+    opacity: .35;
+}
+
+.mod-row.drop-before {
+    box-shadow: 0 -2px 0 #5aa0ff;
+}
+
+.mod-row.drop-after {
+    box-shadow: 0 2px 0 #5aa0ff;
+}
+
+.pack-grip {
+    flex: none;
+    width: 10px;
+    height: 18px;
+    margin-right: -4px;
+    background-image: radial-gradient(#6a6a6a 1.2px, transparent 1.4px);
+    background-size: 5px 6px;
+    background-position: 0 0;
+}
+
+.mod-row:hover .pack-grip {
+    background-image: radial-gradient(#bdbdbd 1.2px, transparent 1.4px);
+}
+
+.pack-rank {
+    flex: none;
+    width: 18px;
+    color: #5aa0ff;
+    font: normal normal bold 12px/1 Poppins;
+    text-align: center;
+}
+
+/* --- Icône personnalisée d'instance --- */
+
+.instance-icon.custom-icon {
+    background-size: cover !important;
+    background-position: center !important;
+    text-shadow: none;
+}
+
+.icon-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-picker-preview {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+}
+
+.icon-picker-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px #5aa0ff;
+}
+
+.icon-picker-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font: normal normal bold 12px/17px Poppins;
+}
+
+.icon-picker-actions a {
+    color: #5aa0ff;
+    cursor: pointer;
+}
+
+.icon-picker-actions a.icon-remove {
+    color: #9a9a9a;
+}
+
+.icon-picker-actions a.icon-remove:hover {
+    color: #ff8b8f;
+}
+
+.icon-file {
+    display: none;
+}
+
+.preview-icon.icon-upload {
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+}
+
+.preview-icon.icon-upload:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 2px #5aa0ff;
+}
+
+.icon-picker .color-swatches {
+    grid-template-columns: repeat(4, 1fr);
+    margin: 0 0 0 auto;
+    padding: 4px;
+    gap: 5px;
+}
+
+.preview-icon-actions {
+    flex-direction: row;
+    gap: 12px;
+    margin-top: 2px;
+}
+
+.color-swatches.dimmed {
+    opacity: .45;
+}
+
+.color-swatches.dimmed:hover {
+    opacity: 1;
+}

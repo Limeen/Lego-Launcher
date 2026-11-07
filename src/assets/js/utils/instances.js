@@ -156,6 +156,7 @@ export async function createLocalInstance(data) {
     let instance = {
         name: data.name,
         color: data.color,
+        icon: data.icon || null, // data URL PNG 128 px (icône personnalisée)
         created: Date.now(),
         loadder: {
             minecraft_version: data.minecraft_version,

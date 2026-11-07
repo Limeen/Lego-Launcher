@@ -11,9 +11,10 @@ Téléchargement : [venstone.xyz/launcher](https://venstone.xyz/launcher)
 ## Fonctionnalités
 
 - **Instances officielles** récupérées depuis l'API Venstone, toujours mises en avant dans le sélecteur.
-- **Instances personnelles** : choix de la version de Minecraft, du mod loader et de sa version, installation de Fabric API.
+- **Instances personnelles** : choix de la version de Minecraft, du mod loader et de sa version, installation de Fabric API, icône personnalisée (image) ou couleur.
 - **Gestion des mods** par instance : activation/désactivation, import (bouton ou glisser-déposer), suppression, et **vérification de compatibilité** (loader, version de Minecraft, dépendances manquantes) avant chaque ajout.
-- **Packs de textures** par instance : activation (synchronisée avec le menu du jeu), import, suppression et vérification du format de pack par rapport à la version du jeu.
+- **Packs de textures** par instance : activation et ordre de priorité par glisser-déposer (synchronisés avec le menu du jeu), import, suppression et vérification du format de pack par rapport à la version du jeu.
+- **Recherche sur Modrinth** depuis chaque onglet (mods, packs de textures, shaders), filtrée selon la version et le mod loader de l'instance.
 - **Shaders** (instances moddées) : choix du pack actif pour Iris, Oculus ou OptiFine, détection des packs invalides et du mod de shaders manquant.
 - **Mode hors-ligne** : si l'API ou internet est indisponible, le launcher démarre avec les dernières données connues et relance le jeu sans rien télécharger.
 - **Mondes, serveurs et captures d'écran partagés** entre toutes les instances.
@@ -99,13 +100,13 @@ Avant chaque lancement, les dossiers `saves/` et `screenshots/` de l'instance so
 
 ### Instances personnelles et mods
 
-Les instances créées par le joueur sont décrites dans `<userData>/local-instances.json`. Les mods se trouvent dans `.venstone/instances/<nom>/mods/` ; un mod désactivé est renommé en `.jar.disabled`. La compatibilité est déterminée à partir de `fabric.mod.json`, `quilt.mod.json`, `META-INF/mods.toml` ou `META-INF/neoforge.mods.toml`.
+Les instances créées par le joueur sont décrites dans `<userData>/local-instances.json` (une icône personnalisée y est stockée en PNG 128 px, encodé en base64). Une instance Vanilla n'affiche que les packs de textures et ses paramètres. Les mods se trouvent dans `.venstone/instances/<nom>/mods/` ; un mod désactivé est renommé en `.jar.disabled`. La compatibilité est déterminée à partir de `fabric.mod.json`, `quilt.mod.json`, `META-INF/mods.toml` ou `META-INF/neoforge.mods.toml`.
 
 ### Packs de textures et shaders
 
 Les packs (archives `.zip` ou dossiers) se trouvent dans `resourcepacks/` et `shaderpacks/` de l'instance.
 
-- **Textures** : le format accepté par le jeu est lu dans `version.json` du jar de Minecraft (ou déduit d'une table si le jeu n'est pas encore installé) et comparé à `pack_format`, `supported_formats` ou `min_format`/`max_format` du `pack.mcmeta`. Activer un pack l'ajoute en tête de la liste `resourcePacks` de `options.txt` (et à `incompatibleResourcePacks` s'il est prévu pour une autre version, sinon le jeu le retirerait).
+- **Textures** : le format accepté par le jeu est lu dans `version.json` du jar de Minecraft (ou déduit d'une table si le jeu n'est pas encore installé) et comparé à `pack_format`, `supported_formats` ou `min_format`/`max_format` du `pack.mcmeta`. Les packs actifs sont écrits dans la liste `resourcePacks` de `options.txt`, dans l'ordre choisi (un pack activé passe en tête) (et à `incompatibleResourcePacks` s'il est prévu pour une autre version, sinon le jeu le retirerait).
 - **Shaders** : un pack valide contient un dossier `shaders/` à sa racine. Les packs de shaders ne déclarent pas de version de Minecraft ; le launcher vérifie qu'un mod de shaders est actif et écrit le pack choisi dans `config/iris.properties`, `config/oculus.properties` ou `optionsshaders.txt`.
 
 ## Emplacement des données (Windows)

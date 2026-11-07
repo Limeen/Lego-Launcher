@@ -328,19 +328,33 @@ export function activeResourcePacks(instanceDir, mcVersion) {
 }
 
 /**
- * Active ou désactive un pack de textures dans options.txt. Un pack activé passe en tête de
- * priorité ; un pack incompatible est aussi ajouté à `incompatibleResourcePacks`, sans quoi le jeu
- * le retirerait au démarrage.
+ * Écrit la liste des packs de textures actifs dans options.txt.
+ * Les packs intégrés au jeu ou aux mods (« vanilla », « fabric », « programmer_art »...) gardent
+ * leur place ; les packs du joueur prennent la place du premier d'entre eux, dans l'ordre donné.
+ * Les packs incompatibles sont aussi listés dans `incompatibleResourcePacks`, sans quoi le jeu
+ * les retirerait au démarrage.
+ * @param {string} instanceDir
+ * @param {string} mcVersion
+ * @param {string[]} files Packs actifs, du PLUS prioritaire au moins prioritaire (ordre affiché)
+ * @param {string[]} [incompatible] Packs actifs prévus pour une autre version
  */
-export function setResourcePackEnabled(instanceDir, mcVersion, file, enabled, incompatible) {
+export function setResourcePacks(instanceDir, mcVersion, files, incompatible = []) {
     let lines = readOptions(instanceDir) || [];
-    let id = packId(file, mcVersion);
-    let packs = optionList(lines, 'resourcePacks').filter(p => p !== id);
-    let incompat = optionList(lines, 'incompatibleResourcePacks').filter(p => p !== id);
-    if (enabled) {
-        packs.push(id);
-        if (incompatible) incompat.push(id);
-    }
+    let prefix = packId('', mcVersion);
+    let isPlayerPack = id => (prefix ? id.startsWith(prefix) : id !== 'vanilla');
+    let wanted = files.slice().reverse().map(f => packId(f, mcVersion)); // le jeu liste du moins au plus prioritaire
+
+    let current = optionList(lines, 'resourcePacks');
+    let first = current.findIndex(isPlayerPack);
+    let packs = current.filter(id => !isPlayerPack(id));
+    packs.splice(first < 0 ? packs.length : first, 0, ...wanted);
+
+    let incompatIds = new Set(incompatible.map(f => packId(f, mcVersion)));
+    let incompat = [
+        ...optionList(lines, 'incompatibleResourcePacks').filter(id => !isPlayerPack(id)),
+        ...wanted.filter(id => incompatIds.has(id))
+    ];
+
     let set = (key, value) => {
         let text = `${key}:${JSON.stringify(value)}`;
         let i = lines.findIndex(l => l.startsWith(`${key}:`));
@@ -470,4 +484,32 @@ function versionsForFormat(format) {
         last = '1.21.10';
     }
     return { first: RESOURCE_FORMATS[i][0], last };
+}
+
+/* ------------------------------------------------------------------ */
+/* Modrinth                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Page de recherche Modrinth filtrée pour l'instance : version de Minecraft, mod loader (mods)
+ * ou chargeur de shaders (Iris pour Iris/Oculus, OptiFine).
+ * @param {"mods"|"resourcepacks"|"shaderpacks"} kind
+ * @param {object} instance
+ * @param {{id: string}|null} [loader] Mod de shaders installé
+ * @returns {string}
+ */
+export function modrinthSearchUrl(kind, instance, loader = null) {
+    let params = [];
+    let type = instance?.loadder?.loadder_type || 'none';
+    if (kind === 'mods') {
+        // Quilt charge aussi les mods Fabric ; NeoForge 1.20.1 charge les mods Forge.
+        let loaders = { fabric: ['fabric'], quilt: ['quilt', 'fabric'], forge: ['forge'], neoforge: ['neoforge'] }[type] || [];
+        if (type === 'neoforge' && instance.loadder.minecraft_version === '1.20.1') loaders.push('forge');
+        params.push(...loaders.map(l => `g=categories:${l}`));
+    } else if (kind === 'shaderpacks') {
+        params.push(`g=categories:${loader?.id === 'optifine' ? 'optifine' : 'iris'}`);
+    }
+    if (instance?.loadder?.minecraft_version) params.push(`v=${encodeURIComponent(instance.loadder.minecraft_version)}`);
+    let page = { mods: 'mods', resourcepacks: 'resourcepacks', shaderpacks: 'shaders' }[kind];
+    return `https://modrinth.com/discover/${page}${params.length ? `?${params.join('&')}` : ''}`;
 }

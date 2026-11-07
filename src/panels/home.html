@@ -169,10 +169,12 @@
                 <aside class="create-preview">
                     <div class="preview-label">Aperçu</div>
                     <div class="preview-card">
-                        <div class="instance-icon preview-icon"></div>
+                        <div class="instance-icon preview-icon icon-upload" data-tip="Choisir une image"></div>
                         <div class="preview-name">Mon instance</div>
                         <div class="preview-chips"></div>
                         <div class="color-swatches" title="Couleur de l'instance"></div>
+                        <div class="icon-picker-actions preview-icon-actions"><a class="icon-upload">Importer une icône</a><a class="icon-remove">Retirer l'icône</a></div>
+                        <input type="file" class="icon-file" accept="image/png,image/jpeg,image/webp,image/gif"/>
                     </div>
                     <div class="create-error"></div>
                     <div class="btn btn-primary create-submit">Créer l'instance</div>
@@ -198,7 +200,7 @@
             </div>
 
             <div class="edit-tabs">
-                <div class="edit-tab-btn active" data-tab="mods">Mods <span class="section-count" data-count="mods">0</span></div>
+                <div class="edit-tab-btn edit-tab-mods active" data-tab="mods">Mods <span class="section-count" data-count="mods">0</span></div>
                 <div class="edit-tab-btn" data-tab="resourcepacks">Packs de textures <span class="section-count" data-count="resourcepacks">0</span></div>
                 <div class="edit-tab-btn edit-tab-shaders" data-tab="shaderpacks">Shaders <span class="section-count" data-count="shaderpacks">0</span></div>
                 <div class="edit-tab-btn" data-tab="general">Paramètres de l'instance</div>
@@ -211,7 +213,8 @@
                         <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
                         <input type="text" class="mods-search pane-search" placeholder="Rechercher un mod..." spellcheck="false"/>
                     </div>
-                    <div class="btn-small btn-ghost pane-folder">Ouvrir le dossier</div>
+                    <div class="tool-btn pane-folder" data-tip="Ouvrir le dossier"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+                    <div class="tool-btn pane-modrinth" data-tip="Rechercher sur Modrinth"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1.9 2.2A8 8 0 0 0 4.06 11h3.97c.12-2.6.82-5 2.07-6.8zm3.8 0c1.25 1.8 1.95 4.2 2.07 6.8h3.97a8 8 0 0 0-6.04-6.8zM14 11c-.14-2.45-.9-4.6-2-6-1.1 1.4-1.86 3.55-2 6zm-4 2c.14 2.45.9 4.6 2 6 1.1-1.4 1.86-3.55 2-6zm-5.94 0a8 8 0 0 0 6.04 6.8C8.85 18 8.15 15.6 8.03 13zm11.91 0c-.12 2.6-.82 5-2.07 6.8A8 8 0 0 0 19.94 13z"/></svg></div>
                     <div class="btn-small pane-import">+ Importer des mods</div>
                     <input type="file" class="mods-file pane-file" accept=".jar" multiple/>
                 </div>
@@ -229,7 +232,8 @@
                         <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
                         <input type="text" class="mods-search pane-search" placeholder="Rechercher un pack de textures..." spellcheck="false"/>
                     </div>
-                    <div class="btn-small btn-ghost pane-folder">Ouvrir le dossier</div>
+                    <div class="tool-btn pane-folder" data-tip="Ouvrir le dossier"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+                    <div class="tool-btn pane-modrinth" data-tip="Rechercher sur Modrinth"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1.9 2.2A8 8 0 0 0 4.06 11h3.97c.12-2.6.82-5 2.07-6.8zm3.8 0c1.25 1.8 1.95 4.2 2.07 6.8h3.97a8 8 0 0 0-6.04-6.8zM14 11c-.14-2.45-.9-4.6-2-6-1.1 1.4-1.86 3.55-2 6zm-4 2c.14 2.45.9 4.6 2 6 1.1-1.4 1.86-3.55 2-6zm-5.94 0a8 8 0 0 0 6.04 6.8C8.85 18 8.15 15.6 8.03 13zm11.91 0c-.12 2.6-.82 5-2.07 6.8A8 8 0 0 0 19.94 13z"/></svg></div>
                     <div class="btn-small pane-import">+ Importer des packs</div>
                     <input type="file" class="mods-file pane-file" accept=".zip" multiple/>
                 </div>
@@ -247,7 +251,8 @@
                         <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.06l4.24 4.24-1.4 1.4-4.24-4.24A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
                         <input type="text" class="mods-search pane-search" placeholder="Rechercher un pack de shaders..." spellcheck="false"/>
                     </div>
-                    <div class="btn-small btn-ghost pane-folder">Ouvrir le dossier</div>
+                    <div class="tool-btn pane-folder" data-tip="Ouvrir le dossier"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+                    <div class="tool-btn pane-modrinth" data-tip="Rechercher sur Modrinth"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1.9 2.2A8 8 0 0 0 4.06 11h3.97c.12-2.6.82-5 2.07-6.8zm3.8 0c1.25 1.8 1.95 4.2 2.07 6.8h3.97a8 8 0 0 0-6.04-6.8zM14 11c-.14-2.45-.9-4.6-2-6-1.1 1.4-1.86 3.55-2 6zm-4 2c.14 2.45.9 4.6 2 6 1.1-1.4 1.86-3.55 2-6zm-5.94 0a8 8 0 0 0 6.04 6.8C8.85 18 8.15 15.6 8.03 13zm11.91 0c-.12 2.6-.82 5-2.07 6.8A8 8 0 0 0 19.94 13z"/></svg></div>
                     <div class="btn-small pane-import">+ Importer des shaders</div>
                     <input type="file" class="mods-file pane-file" accept=".zip" multiple/>
                 </div>
@@ -269,8 +274,16 @@
                                 <input type="text" class="field-input create-name" maxlength="32" spellcheck="false"/>
                             </div>
                             <div class="field">
-                                <label class="field-label">Couleur</label>
-                                <div class="color-swatches"></div>
+                                <label class="field-label">Icône</label>
+                                <div class="icon-picker">
+                                    <div class="instance-icon icon-picker-preview icon-upload" data-tip="Choisir une image"></div>
+                                    <div class="icon-picker-actions">
+                                        <a class="icon-upload">Importer</a>
+                                        <a class="icon-remove">Retirer</a>
+                                    </div>
+                                    <input type="file" class="icon-file" accept="image/png,image/jpeg,image/webp,image/gif"/>
+                                    <div class="color-swatches" title="Couleur (sans image)"></div>
+                                </div>
                             </div>
                         </div>
 
