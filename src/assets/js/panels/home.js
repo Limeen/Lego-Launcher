@@ -290,8 +290,8 @@ class Home {
         this.currentInstance = instance || null
         settingsBTN.classList.toggle('disabled', !instance)
         settingsBTN.dataset.tip = !instance ? 'Aucune instance sélectionnée'
-            : instance.official ? 'Créer une copie modifiable'
-            : "Paramètres de l'instance"
+            : instance.official ? "Modifier l'instance"
+            : "Modifier l'instance"
 
         this.iconHTML(instance, icon)
         if (!instance) {
