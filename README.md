@@ -12,6 +12,7 @@ Téléchargement : [venstone.xyz/launcher](https://venstone.xyz/launcher)
 
 - **Instances officielles** récupérées depuis l'API Venstone, toujours mises en avant dans le sélecteur.
 - **Instances personnelles** : choix de la version de Minecraft, du mod loader et de sa version, installation de Fabric API, icône personnalisée (image) ou couleur.
+- **Copie modifiable d'une instance officielle** (bouton à gauche du sélecteur) : mêmes versions, mods, configs et packs, sans les mises à jour automatiques du serveur.
 - **Gestion des mods** par instance : activation/désactivation, import (bouton ou glisser-déposer), suppression, et **vérification de compatibilité** (loader, version de Minecraft, dépendances manquantes) avant chaque ajout.
 - **Packs de textures** par instance : activation et ordre de priorité par glisser-déposer (synchronisés avec le menu du jeu), import, suppression et vérification du format de pack par rapport à la version du jeu.
 - **Recherche sur Modrinth** depuis chaque onglet (mods, packs de textures, shaders), filtrée selon la version et le mod loader de l'instance.
@@ -100,7 +101,7 @@ Avant chaque lancement, les dossiers `saves/` et `screenshots/` de l'instance so
 
 ### Instances personnelles et mods
 
-Les instances créées par le joueur sont décrites dans `<userData>/local-instances.json` (une icône personnalisée y est stockée en PNG 128 px, encodé en base64). Une instance Vanilla n'affiche que les packs de textures et ses paramètres. Les mods se trouvent dans `.venstone/instances/<nom>/mods/` ; un mod désactivé est renommé en `.jar.disabled`. La compatibilité est déterminée à partir de `fabric.mod.json`, `quilt.mod.json`, `META-INF/mods.toml` ou `META-INF/neoforge.mods.toml`.
+Les instances créées par le joueur sont décrites dans `<userData>/local-instances.json` (une icône personnalisée y est stockée en PNG 128 px, encodé en base64). Une instance Vanilla n'affiche que les packs de textures et ses paramètres. Une copie d'instance officielle (`clonedFrom`) reprend tout le dossier de l'instance sauf les liens partagés (`saves`, `screenshots`), les journaux et les téléchargements, ainsi que son cache de lancement. Les mods se trouvent dans `.venstone/instances/<nom>/mods/` ; un mod désactivé est renommé en `.jar.disabled`. La compatibilité est déterminée à partir de `fabric.mod.json`, `quilt.mod.json`, `META-INF/mods.toml` ou `META-INF/neoforge.mods.toml`.
 
 ### Packs de textures et shaders
 

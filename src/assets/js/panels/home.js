@@ -7,10 +7,11 @@ import OfflineLaunch from '../utils/launch.js'
 import { prepareSharedData, finishSharedData } from '../utils/shared.js'
 import {
     INSTANCE_COLORS, getGamePath, getAllInstances, resolveInstanceSelection, isInstalled,
-    launchCacheFile, instanceFolder, validateName, createLocalInstance, ensureFabricApi, hasInternet
+    launchCacheFile, instanceFolder, validateName, createLocalInstance, cloneOfficialInstance, ensureFabricApi, hasInternet
 } from '../utils/instances.js'
 import InstanceForm, { escapeHTML, loaderLabel, paintIcon } from '../utils/instanceForm.js'
 import InstanceEditor from './instanceEditor.js'
+import { confirmDialog } from '../utils/dialog.js'
 
 const { shell, ipcRenderer } = require('electron')
 const fs = require('fs')
@@ -284,6 +285,13 @@ class Home {
         let meta = document.querySelector('.instance-picker-meta')
         let icon = document.querySelector('.instance-picker-icon')
         let playBTN = document.querySelector('.play-instance')
+        let settingsBTN = document.querySelector('.instance-settings')
+
+        this.currentInstance = instance || null
+        settingsBTN.classList.toggle('disabled', !instance)
+        settingsBTN.dataset.tip = !instance ? 'Aucune instance sélectionnée'
+            : instance.official ? 'Créer une copie modifiable'
+            : "Paramètres de l'instance"
 
         this.iconHTML(instance, icon)
         if (!instance) {
@@ -298,6 +306,53 @@ class Home {
         meta.innerHTML = `${escapeHTML(loaderLabel(instance))} · ${escapeHTML(instance.loadder?.minecraft_version)}`
             + (this.offline && !installed ? ' · <span class="orange">non installée</span>' : '')
         playBTN.classList.toggle('disabled', this.offline && !installed)
+    }
+
+    /**
+     * Instance officielle : propose d'en créer une copie personnelle modifiable, en prévenant
+     * qu'elle ne recevra plus les mises à jour du serveur.
+     * @param {object} official
+     */
+    async proposeClone(official) {
+        if (!isInstalled(this.gamePath, official)) {
+            return confirmDialog({
+                title: "Instance pas encore installée",
+                html: `Lancez <b>${escapeHTML(official.name)}</b> une première fois pour la télécharger, vous pourrez ensuite en créer une copie modifiable.`,
+                confirmText: 'Compris',
+                cancelText: 'Fermer',
+                icon: 'i'
+            })
+        }
+
+        // Nom proposé, libre : « Venstone 26.2 (perso) », « Venstone 26.2 (perso 2) »...
+        let base = `${official.name} (perso`
+        let suggestion = `${base})`
+        for (let n = 2; (await validateName(suggestion, this.instances.official)).error && n < 50; n++) suggestion = `${base} ${n})`
+
+        let created = null
+        let { confirmed } = await confirmDialog({
+            title: 'Créer une copie modifiable ?',
+            icon: '!',
+            html: `Les instances officielles sont gérées par Venstone et ne peuvent pas être modifiées.
+                Vous pouvez créer une <b>copie personnelle</b> de <b>${escapeHTML(official.name)}</b> (mods, configs, packs et réglages) et la modifier librement.
+                <div class="confirm-dialog-warning"><b>Attention :</b> la copie ne recevra plus les mises à jour automatiques de l'instance officielle.
+                Si le serveur change de version ou de mods, elle risque de ne plus pouvoir s'y connecter, et ce sera à vous de la maintenir à jour.</div>
+                Vos mondes, serveurs et captures restent partagés entre toutes les instances.<br><br><b>Nom de la copie</b>`,
+            input: { value: suggestion, placeholder: 'Nom de la copie' },
+            confirmText: 'Créer la copie',
+            busyText: 'Copie en cours...',
+            onConfirm: async value => {
+                let check = await validateName(value, this.instances.official)
+                if (check.error) return check.error
+                created = await cloneOfficialInstance(official, check.name, this.gamePath)
+                return null
+            }
+        })
+        if (!confirmed || !created) return
+
+        await this.refreshInstances()
+        await this.selectInstance(created.name)
+        this.editor.open(created)
     }
 
     /**
@@ -419,6 +474,15 @@ class Home {
 
         document.querySelector('.instance-picker').addEventListener('click', () => {
             if (!this.playing) this.openInstancePicker()
+        })
+
+        // Bouton à gauche du sélecteur : ouvre directement l'édition de l'instance sélectionnée.
+        document.querySelector('.instance-settings').addEventListener('click', () => {
+            let instance = this.currentInstance
+            if (!instance) return
+            if (this.playing) return this.showError("Fermez le jeu avant de modifier l'instance.")
+            if (instance.official) return this.proposeClone(instance)
+            this.editor.open(instance)
         })
 
         document.querySelector('.play-instance').addEventListener('click', () => {

@@ -5,6 +5,12 @@
  *       title: 'Mod incompatible', html: '...', confirmText: 'Ajouter quand même',
  *       danger: true, checkbox: 'Supprimer aussi les fichiers'
  *   })
+ *
+ *   // Avec un champ texte et une action qui garde la boîte ouverte tant qu'elle échoue :
+ *   let { confirmed, value } = await confirmDialog({
+ *       title: 'Nom', input: { value: 'Copie' }, busyText: 'Copie...',
+ *       onConfirm: async value => erreur ? 'Message d'erreur' : null
+ *   })
  */
 
 import { escapeHTML } from './instanceForm.js';
@@ -27,6 +33,8 @@ function element() {
                 <p class="modal-title confirm-dialog-title"></p>
             </div>
             <div class="confirm-dialog-text"></div>
+            <input type="text" class="field-input confirm-dialog-input" maxlength="32" spellcheck="false"/>
+            <div class="confirm-dialog-error"></div>
             <label class="checkbox-line confirm-dialog-check">
                 <input type="checkbox"/>
                 <span></span>
@@ -50,9 +58,13 @@ function element() {
  * @param {string} [options.cancelText]
  * @param {boolean} [options.danger] Bouton rouge
  * @param {string} [options.checkbox] Libellé d'une case à cocher optionnelle
- * @returns {Promise<{confirmed: boolean, checked: boolean}>}
+ * @param {{value?: string, placeholder?: string}} [options.input] Champ texte (prérempli et sélectionné)
+ * @param {(value: string) => Promise<string|null>} [options.onConfirm] Action lancée à la confirmation ;
+ *        si elle renvoie un message, il est affiché et la boîte reste ouverte
+ * @param {string} [options.busyText] Libellé du bouton pendant `onConfirm`
+ * @returns {Promise<{confirmed: boolean, checked: boolean, value: string}>}
  */
-export function confirmDialog({ title, html = '', confirmText = 'Confirmer', cancelText = 'Annuler', danger = false, checkbox = null, icon = danger ? '!' : '?' }) {
+export function confirmDialog({ title, html = '', confirmText = 'Confirmer', cancelText = 'Annuler', danger = false, checkbox = null, icon = danger ? '!' : '?', input = null, onConfirm = null, busyText = null }) {
     if (current) current(false);
     let root = element();
     root.querySelector('.confirm-dialog-title').textContent = title;
@@ -67,24 +79,52 @@ export function confirmDialog({ title, html = '', confirmText = 'Confirmer', can
     ok.textContent = confirmText;
     ok.className = `btn confirm-dialog-ok ${danger ? 'btn-danger' : 'btn-primary'}`;
     root.querySelector('.confirm-dialog-cancel').textContent = cancelText;
+    let field = root.querySelector('.confirm-dialog-input');
+    let error = root.querySelector('.confirm-dialog-error');
+    field.style.display = input ? '' : 'none';
+    field.value = input?.value || '';
+    field.placeholder = input?.placeholder || '';
+    error.textContent = '';
+    field.oninput = () => { error.textContent = ''; };
     root.style.display = 'flex';
+    if (input) setTimeout(() => { field.focus(); field.select(); }, 0);
 
     return new Promise(resolve => {
+        let busy = false;
+        let confirm = async () => {
+            if (busy) return;
+            if (!onConfirm) return cleanup(true);
+            busy = true;
+            ok.classList.add('disabled');
+            ok.textContent = busyText || confirmText;
+            let message = null;
+            try {
+                message = await onConfirm(field.value.trim());
+            } catch (err) {
+                message = err.message || String(err);
+            }
+            busy = false;
+            ok.classList.remove('disabled');
+            ok.textContent = confirmText;
+            if (message) error.textContent = message;
+            else cleanup(true);
+        };
         let cleanup = result => {
+            if (busy) return; // une action est en cours : on attend sa fin
             current = null;
             root.style.display = 'none';
             ok.onclick = null;
             root.querySelector('.confirm-dialog-cancel').onclick = null;
             root.onmousedown = null;
             document.removeEventListener('keydown', onKey, true);
-            resolve({ confirmed: result, checked: check.querySelector('input').checked });
+            resolve({ confirmed: result, checked: check.querySelector('input').checked, value: field.value.trim() });
         };
         let onKey = e => {
             if (e.key === 'Escape') { e.stopPropagation(); cleanup(false); }
-            if (e.key === 'Enter') { e.stopPropagation(); cleanup(true); }
+            if (e.key === 'Enter') { e.stopPropagation(); confirm(); }
         };
         current = cleanup;
-        ok.onclick = () => cleanup(true);
+        ok.onclick = () => confirm();
         root.querySelector('.confirm-dialog-cancel').onclick = () => cleanup(false);
         root.onmousedown = e => { if (e.target === root) cleanup(false); };
         document.addEventListener('keydown', onKey, true);

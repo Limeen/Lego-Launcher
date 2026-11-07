@@ -243,6 +243,72 @@ export async function deleteLocalInstance(name, gamePath, deleteFiles) {
     }
 }
 
+/** Dossiers / fichiers d'une instance qui ne sont pas recopiés dans un clone. */
+const CLONE_SKIP = new Set(['saves', 'screenshots', 'logs', 'crash-reports', 'downloads', 'servers.dat.avant-partage']);
+
+/**
+ * Crée une instance personnelle modifiable à partir d'une instance officielle installée :
+ * mêmes versions, mods, configs, packs et options. Les mondes, serveurs et captures étant
+ * partagés entre toutes les instances, ils ne sont pas copiés. Le clone ne reçoit plus les
+ * mises à jour de l'instance officielle.
+ * @param {object} official Instance officielle (déjà lancée au moins une fois)
+ * @param {string} name Nom du clone (déjà validé)
+ * @param {string} gamePath
+ * @returns {Promise<object>} Instance créée
+ */
+export async function cloneOfficialInstance(official, name, gamePath) {
+    let source = instanceFolder(gamePath, official);
+    let target = instanceFolder(gamePath, { name });
+    if (fs.existsSync(target)) throw new Error(`Un dossier "${name}" existe déjà dans les instances.`);
+
+    try {
+        fs.mkdirSync(target, { recursive: true });
+        // Entrées de premier niveau triées ici (et non dans le filtre de cp, qui reçoit des chemins
+        // « \\?\C:\... » sous Windows). Jamais de lien : les dossiers partagés restent intacts.
+        let entries = fs.existsSync(source) ? fs.readdirSync(source, { withFileTypes: true }) : [];
+        for (let entry of entries) {
+            if (CLONE_SKIP.has(entry.name) || entry.isSymbolicLink()) continue;
+            await fs.promises.cp(path.join(source, entry.name), path.join(target, entry.name), {
+                recursive: true,
+                filter: src => {
+                    try { return !fs.lstatSync(src).isSymbolicLink(); } catch { return false; }
+                }
+            });
+        }
+        // Cache de lancement : le clone est jouable hors-ligne immédiatement.
+        let cache = launchCacheFile(gamePath, official);
+        if (fs.existsSync(cache)) fs.copyFileSync(cache, launchCacheFile(gamePath, { name }));
+    } catch (err) {
+        fs.rmSync(target, { recursive: true, force: true });
+        throw new Error(`Copie des fichiers impossible (le jeu est-il ouvert ?) : ${err.message}`);
+    }
+
+    let list = await getLocalInstances();
+    let instance = {
+        name,
+        color: INSTANCE_COLORS[0],
+        icon: null,
+        created: Date.now(),
+        clonedFrom: official.name,
+        loadder: {
+            minecraft_version: official.loadder.minecraft_version,
+            loadder_type: official.loadder.loadder_type || 'none',
+            loadder_version: official.loadder.loadder_version
+        },
+        // Fabric API éventuelle : déjà présente dans les mods copiés.
+        fabricApi: null,
+        jvm_args: [...(official.jvm_args || [])],
+        game_args: [...(official.game_args || [])],
+        verify: false,
+        ignored: [],
+        whitelist: [],
+        whitelistActive: false
+    };
+    list.push(instance);
+    await saveLocalInstances(list);
+    return { ...instance, local: true };
+}
+
 /* ------------------------------------------------------------------ */
 /* Sélection / whitelist                                               */
 /* ------------------------------------------------------------------ */
