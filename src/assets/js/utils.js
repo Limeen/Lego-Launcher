@@ -73,6 +73,11 @@ async function appdata() {
  * Ajoute la carte d'un compte dans la liste des paramètres.
  * @param {object} data Compte (name, ID, meta...)
  */
+/** Adresse de la tête d'un joueur sur le site (Steve si le joueur n'a pas de skin). */
+function headUrl(pseudo) {
+    return `https://venstone.xyz/api/skin/${encodeURIComponent(pseudo)}/head.png`;
+}
+
 async function addAccount(data) {
     let div = document.createElement("div");
     div.classList.add("account");
@@ -80,7 +85,7 @@ async function addAccount(data) {
     let name = String(data.name).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     let type = data?.meta?.type === 'Xbox' ? 'Compte Microsoft' : 'Compte Venstone';
     div.innerHTML = `
-        <div class="profile-image" style="background-image: url(https://venstone.xyz/skins/?pseudo=${encodeURIComponent(data.name)}), url(assets/images/default/steve.png);"></div>
+        <div class="profile-image" style="background-image: url(${headUrl(data.name)}), url(assets/images/default/steve.png);"></div>
         <div class="profile-infos">
             <div class="profile-pseudo">${name}</div>
             <div class="profile-uuid"><span class="profile-active">Actif</span>${type}</div>
@@ -118,7 +123,7 @@ async function accountSelect(data) {
   * @param {string} pseudo
   */
  function headplayer(pseudo) {
-    const imageUrl = `https://venstone.xyz/skins/?pseudo=${encodeURIComponent(pseudo)}`;
+    const imageUrl = headUrl(pseudo);
     const defaultImage = "assets/images/default/steve.png";
 
     const img = new Image();

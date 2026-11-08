@@ -207,8 +207,7 @@ class Home {
     /** Clic sur la tête du joueur : ouvre la page de changement de skin. */
     socialLick() {
         document.querySelector('.player-head').addEventListener('click', () => {
-            let pseudo = document.getElementById("player-username").textContent
-            shell.openExternal(`https://venstone.xyz/skins/changeskin/?pseudo=${encodeURIComponent(pseudo)}`)
+            shell.openExternal('https://venstone.xyz/skin/')
         })
     }
 
