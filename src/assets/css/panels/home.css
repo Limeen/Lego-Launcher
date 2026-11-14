@@ -36,13 +36,13 @@
     margin-top: auto;
 }
 
-/* Fenêtre 980 × 552 : 72 px de marge + 382 px de colonne de droite = bas à 454 px,
+/* Fenêtre 980 × 552 : 54 px de marge + 394 px de colonne de droite = bas à 448 px,
    au-dessus de la barre du bas (476 px). La news s'arrête au niveau de la boîte Discord. */
 .body-home {
     display: flex;
     flex: none;
     align-items: stretch;
-    margin: 72px 2rem 0;
+    margin: 54px 2rem 0;
 }
 
 /* Colonne de gauche : logo + dernière news. « contain: size » : sa hauteur ne compte pas,
@@ -389,7 +389,7 @@
     border-radius: 10px;
     transition: opacity 1s;
     opacity: 1;
-    margin-top: 10px;
+    margin-top: 14px;
     transition-duration: 0.5s;
 }
 
@@ -408,13 +408,13 @@
     transition: color .2s;
 }
 
+/* Logo au-dessus de la news : un peu plus petit qu'avant (82 px) pour laisser la place à la news. */
 .venstone-logo-home {
-    transition-duration: 0.5s;
-}
-
-.venstone-logo-home:hover {
-    filter: drop-shadow(0 0 2rem #c3cbd1);
-    transition-duration: 0.5s;
+    flex: none;
+    display: block;
+    height: 70px;
+    width: auto;
+    margin: 0 auto 8px;
 }
 
 
