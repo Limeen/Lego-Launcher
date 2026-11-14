@@ -83,7 +83,7 @@ src/
 
 ### API Venstone
 
-Le launcher lit sa configuration sur `https://venstone.xyz/launcher-data/stable/` (avec un serveur de secours) :
+Le launcher lit sa configuration sur `https://venstone.xyz/launcher-data/stable/` (adresse définie dans `src/assets/js/utils/config.js`) :
 
 | Ressource | Rôle |
 | --- | --- |
