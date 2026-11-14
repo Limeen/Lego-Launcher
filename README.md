@@ -45,6 +45,8 @@ Un build local produit l'installateur dans `dist/` sans rien publier.
 
 La publication est automatique : un **push sur `master`** déclenche le workflow GitHub Actions (`.github/workflows/build.yml`), qui crée une release nommée d'après la `version` de `package.json` et y envoie les builds Windows, macOS et Linux. Les launchers déjà installés détectent cette release et se mettent à jour. **Pensez à augmenter la version** avant de pousser.
 
+Dépôt : [VenstoneMC/venstone-launcher](https://github.com/VenstoneMC/venstone-launcher), transféré depuis `Limeen/Lego-Launcher` en novembre 2026. Les launchers construits avant le transfert interrogent encore l'ancienne adresse et passent par les redirections de GitHub. **Ne jamais recréer de dépôt `Limeen/Lego-Launcher`** : cela couperait ces redirections, et donc les mises à jour de ces launchers.
+
 ## Structure du projet
 
 ```
