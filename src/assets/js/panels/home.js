@@ -148,7 +148,7 @@ class Home {
      * Crée le bloc HTML d'une actualité.
      * @returns {HTMLElement}
      */
-    newsBlock(title, content, date, author) {
+    newsBlock(title, content, date, author, olderCount = 0) {
         let blockNews = document.createElement('div');
         blockNews.classList.add('news-block');
         blockNews.innerHTML = `
@@ -166,11 +166,36 @@ class Home {
                     <p>${content}</p>
                     ${author ? `<p class="news-author">${author}</p>` : ''}
                 </div>
-            </div>`
+            </div>
+            ${olderCount ? `
+            <div class="news-footer">
+                <div class="news-older-btn">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 1-8.95 10h2.02A7 7 0 1 0 7.05 7.05L9 9H3V3l2.64 2.64A8.96 8.96 0 0 1 12 3zm-1 4h2v4.59l3.2 3.2-1.42 1.41L11 12.41z"/></svg>
+                    Voir les anciennes news
+                    <span class="news-older-count">${olderCount}</span>
+                </div>
+            </div>` : ''}`
+        this.watchNewsFade(blockNews.querySelector('.news-content'))
         return blockNews
     }
 
-    /** Affiche les actualités (ou un message hors-ligne). */
+    /**
+     * Dégradé en bas d'une zone de texte qui déborde : indique qu'on peut défiler,
+     * et disparaît une fois arrivé en bas.
+     * @param {HTMLElement} scroller
+     */
+    watchNewsFade(scroller) {
+        let update = () => {
+            let overflowing = scroller.scrollHeight > scroller.clientHeight + 2
+            scroller.classList.toggle('fade-bottom', overflowing && scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 4)
+            scroller.classList.toggle('fade-top', overflowing && scroller.scrollTop > 4)
+        }
+        scroller.addEventListener('scroll', update, { passive: true })
+        new ResizeObserver(update).observe(scroller)
+        requestAnimationFrame(update)
+    }
+
+    /** Affiche la dernière actualité (ou un message hors-ligne) ; les autres sont dans la fenêtre « Anciennes news ». */
     async news() {
         let newsElement = document.querySelector('.news-list');
         let news = await config.getNews().then(res => res).catch(() => false);
@@ -194,14 +219,102 @@ class Home {
             return
         }
 
-        for (let News of news) {
-            newsElement.appendChild(this.newsBlock(
-                News.title,
-                String(News.content || '').replace(/\n/g, '</br>'),
-                this.getdate(News.publish_date),
-                News.author
-            ));
+        this.newsItems = news
+        let [latest] = news
+        let block = this.newsBlock(
+            latest.title,
+            this.newsHTML(latest.content),
+            this.getdate(latest.publish_date),
+            latest.author,
+            news.length - 1
+        )
+        newsElement.appendChild(block)
+        block.querySelector('.news-older-btn')?.addEventListener('click', () => this.openNewsHistory())
+    }
+
+    /** Contenu d'une news : retours à la ligne convertis en HTML. */
+    newsHTML(content) {
+        return String(content || '').replace(/\n/g, '</br>')
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Anciennes news                                                      */
+    /* ------------------------------------------------------------------ */
+
+    /** Ouvre la fenêtre des anciennes news (toutes sauf la dernière), sur la plus récente. */
+    openNewsHistory() {
+        let popup = document.querySelector('.news-popup')
+        let older = (this.newsItems || []).slice(1)
+        if (!older.length) return
+
+        if (!this.newsHistoryBound) {
+            this.newsHistoryBound = true
+            popup.querySelector('.close-popup').addEventListener('click', () => this.closeNewsHistory())
+            popup.addEventListener('mousedown', e => { if (e.target === popup) this.closeNewsHistory() })
+            popup.querySelector('.news-history-list').addEventListener('click', e => {
+                let item = e.target.closest('.news-history-item')
+                if (item) this.showOldNews(Number(item.dataset.index))
+            })
+            this.watchNewsFade(popup.querySelector('.news-reader-body'))
+            // Échap ferme, flèches haut / bas changent de news.
+            document.addEventListener('keydown', e => {
+                if (!popup.classList.contains('open')) return
+                if (e.key === 'Escape') this.closeNewsHistory()
+                else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    let count = (this.newsItems || []).length - 1
+                    let next = this.newsHistoryIndex + (e.key === 'ArrowDown' ? 1 : -1)
+                    if (next >= 0 && next < count) this.showOldNews(next)
+                }
+            })
         }
+
+        popup.querySelector('.news-history-subtitle').textContent =
+            `${older.length} news précédente${older.length > 1 ? 's' : ''}, de la plus récente à la plus ancienne.`
+        popup.querySelector('.news-history-list').innerHTML = older.map((item, index) => {
+            let date = this.getdate(item.publish_date)
+            return `
+                <div class="news-history-item" data-index="${index}">
+                    <div class="news-history-date">
+                        <span class="news-history-day">${date.day}</span>
+                        <span class="news-history-month">${date.month.slice(0, 4)}${date.month.length > 4 ? '.' : ''}</span>
+                    </div>
+                    <div class="news-history-text">
+                        <div class="news-history-title">${item.title}</div>
+                        <div class="news-history-year">${date.month} ${date.year}</div>
+                    </div>
+                </div>`
+        }).join('')
+
+        this.showOldNews(0)
+        this.openPopup('.news-popup')
+    }
+
+    /** Ferme la fenêtre des anciennes news. */
+    closeNewsHistory() {
+        this.closePopup('.news-popup')
+    }
+
+    /**
+     * Affiche une ancienne news dans le panneau de lecture.
+     * @param {number} index Position parmi les anciennes news (0 = la plus récente)
+     */
+    showOldNews(index) {
+        let item = (this.newsItems || [])[index + 1]
+        if (!item) return
+        this.newsHistoryIndex = index
+        let popup = document.querySelector('.news-popup')
+        let date = this.getdate(item.publish_date)
+        popup.querySelectorAll('.news-history-item').forEach(el => {
+            let active = Number(el.dataset.index) === index
+            el.classList.toggle('active', active)
+            if (active) el.scrollIntoView({ block: 'nearest' })
+        })
+        popup.querySelector('.news-reader-title').innerHTML = item.title
+        popup.querySelector('.news-reader-date').textContent = `${date.day} ${date.month} ${date.year}`
+        let body = popup.querySelector('.news-reader-body')
+        body.innerHTML = `<p>${this.newsHTML(item.content)}</p>${item.author ? `<p class="news-author">${item.author}</p>` : ''}`
+        body.scrollTop = 0
     }
 
     /** Clic sur la tête du joueur : ouvre la page de changement de skin. */
