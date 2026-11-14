@@ -24,16 +24,37 @@
 }
 
 
-.body-home {
+/* Accueil : colonne pleine hauteur, la barre du bas (.sidebar) est poussée tout en bas. */
+.home .container {
     display: flex;
-    height: 65vh;
-    margin: 3.66rem 2rem;
+    flex-direction: column;
+    height: 100%;
 }
 
+.home .sidebar {
+    flex: none;
+    margin-top: auto;
+}
+
+/* Fenêtre 980 × 552 : 54 px de marge + 394 px de colonne de droite = bas à 448 px,
+   au-dessus de la barre du bas (476 px). La news s'arrête au niveau de la boîte Discord. */
+.body-home {
+    display: flex;
+    flex: none;
+    align-items: stretch;
+    margin: 54px 2rem 0;
+}
+
+/* Colonne de gauche : logo + dernière news. « contain: size » : sa hauteur ne compte pas,
+   elle prend celle de la colonne de droite. La news se termine donc au niveau de la boîte Discord. */
 .news-list {
     position: relative;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
     width: 100%;
+    min-width: 0;
+    contain: size;
+    overflow: hidden;
 }
 
 .news-list::-webkit-scrollbar {
@@ -41,9 +62,12 @@
 }
 
 .news-block {
-    margin-bottom: 1rem;
-    transition: opacity 1s;
-    opacity: 1;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background-color: #1f1f1f;
     border: solid 1px #3b3b3b;
     border-radius: 12px;
 }
@@ -59,10 +83,11 @@
 
 .news-header {
     position: relative;
+    flex: none;
     top: 0px;
     left: 0px;
     width: 100%;
-    height: 87px;
+    height: 70px;
     background-color: #292929;
     border-radius: 10px 10px 0px 0px;
     transition: color .2s, filter .2s;
@@ -91,8 +116,9 @@
 
 .date {
     position: absolute;
-    top: 15px;
-    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 16px;
     color: #E1E1E1;
     width: 75px;
     text-align: center;
@@ -102,25 +128,52 @@
 }
 
 .day {
-    font-size: 28px;
+    font-size: 25px;
     margin-bottom: -10px;
     display: block;
 }
 
 .month {
     text-transform: uppercase;
-    font-size: 14px;
+    font-size: 12.5px;
 }
 
 .news-content {
     position: relative;
+    flex: 1;
+    min-height: 0;
     width: 100%;
+    overflow-y: auto;
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+
+/* Texte qui déborde : fondu progressif (0 → 100 % d'opacité) en bas, et en haut une fois défilé. */
+.news-content.fade-bottom {
+    --fade-bottom: 56px;
+}
+
+.news-content.fade-top {
+    --fade-top: 28px;
+}
+
+.news-content::-webkit-scrollbar,
+.news-reader-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.news-content::-webkit-scrollbar-thumb,
+.news-reader-body::-webkit-scrollbar-thumb {
+    background: #3b3b3b;
+    border-radius: 4px;
 }
 
 .bbWrapper {
     position: relative;
     padding: 20px;
-    background-color: #1f1f1f;
+    background-color: transparent;
     font-family: Poppins;
     font-size: 13px !important;
     font-weight: lighter;
@@ -132,6 +185,53 @@
 }
 
 
+
+/* Bas de la news : bouton « Voir les anciennes news » */
+.news-footer {
+    flex: none;
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    border-top: solid 1px #2e2e2e;
+}
+
+.news-older-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    border-radius: 9px;
+    color: #cfcfcf;
+    font: normal normal bold 12.5px/18px Poppins;
+    cursor: pointer;
+    transition: background-color .2s, color .2s;
+}
+
+.news-older-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.news-older-btn:hover {
+    background: #2379ee;
+    color: #ffffff;
+}
+
+.news-older-count {
+    padding: 0 7px;
+    border-radius: 6px;
+    background: #2b2b2b;
+    color: #9a9a9a;
+    font-size: 11px;
+    line-height: 18px;
+    transition: background-color .2s, color .2s;
+}
+
+.news-older-btn:hover .news-older-count {
+    background: #ffffff33;
+    color: #ffffff;
+}
 
 .news-author {
     text-align: end;
@@ -157,7 +257,7 @@
 .server {
     position: relative;
     width: 100%;
-    height: 75px;
+    height: 86px;
     background-color: #292929;
     border-radius: 10px;
     transition: opacity 1s;
@@ -176,7 +276,7 @@
     position: absolute;
     width: 45px;
     height: 45px;
-    top: 15px;
+    top: 20px;
     left: 15px;
     margin-top: 1px;
 }
@@ -185,7 +285,7 @@
     position: absolute;
     font: normal normal bold 17px/25px Poppins;
     color: #E1E1E1;
-    top: 17px;
+    top: 22px;
     left: 70px;
     transition: color .2s;
 }
@@ -195,7 +295,7 @@
     font: normal normal normal 11px/17px Poppins;
     color: #E1E1E1;
     transition: all .2s;
-    top: 40px;
+    top: 45px;
     left: 70px;
     transition: color .2s;
 }
@@ -204,7 +304,7 @@
     position: absolute;
     font: normal normal bold 17px/25px Poppins;
     color: #E1E1E1;
-    top: 17px;
+    top: 22px;
     left: 70px;
     transition: color .2s;
 }
@@ -214,7 +314,7 @@
     font: normal normal normal 11px/17px Poppins;
     color: #E1E1E1;
     transition: all .2s;
-    top: 40px;
+    top: 45px;
     left: 70px;
     transition: color .2s;
 }
@@ -233,7 +333,7 @@
 
 .status-player-count {
     position: absolute;
-    top: 20px;
+    top: 26px;
     right: 14px;
     width: 49px;
     height: 33px;
@@ -284,12 +384,12 @@
 .box {
     position: relative;
     width: 100%;
-    height: 75px;
+    height: 86px;
     background-color: #292929;
     border-radius: 10px;
     transition: opacity 1s;
     opacity: 1;
-    margin-top: 8px;
+    margin-top: 14px;
     transition-duration: 0.5s;
 }
 
@@ -308,12 +408,215 @@
     transition: color .2s;
 }
 
+/* Logo au-dessus de la news : un peu plus petit qu'avant (82 px) pour laisser la place à la news. */
 .venstone-logo-home {
-    transition-duration: 0.5s;
+    flex: none;
+    display: block;
+    height: 70px;
+    width: auto;
+    margin: 0 auto 8px;
 }
 
-.venstone-logo-home:hover {
-    filter: drop-shadow(0 0 2rem #c3cbd1);
-    transition-duration: 0.5s;
+
+/*******************************************************************************
+ *                                                                             *
+ * Fenêtre « Anciennes news »                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.news-history-tab {
+    width: 860px;
+    height: 440px;
 }
 
+.news-history {
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr);
+    gap: 14px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Liste : une carte par news (date façon launcher + titre) */
+.news-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    padding-right: 4px;
+    min-height: 0;
+}
+
+.news-history-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.news-history-list::-webkit-scrollbar-thumb {
+    background: #3b3b3b;
+    border-radius: 4px;
+}
+
+.news-history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: none;
+    padding: 9px 10px;
+    background: #292929;
+    border: solid 1px #3b3b3b;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color .2s, border-color .2s;
+}
+
+.news-history-item:hover {
+    background: #353535;
+    border-color: #4a4a4a;
+}
+
+.news-history-item.active {
+    background: #2379ee1f;
+    border-color: #2379ee;
+}
+
+.news-history-date {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 9px;
+    background: #1f1f1f;
+    color: #E1E1E1;
+    font-family: Poppins;
+}
+
+.news-history-item.active .news-history-date {
+    background: #2379ee;
+    color: #ffffff;
+}
+
+.news-history-day {
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 18px;
+}
+
+.news-history-month {
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 12px;
+    text-transform: uppercase;
+}
+
+.news-history-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.news-history-title {
+    color: #F1F1F1;
+    font: normal normal bold 12.5px/17px Poppins;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.news-history-title p,
+.news-reader-title p {
+    display: inline;
+    margin: 0;
+}
+
+.news-history-year {
+    margin-top: 2px;
+    color: #8a8a8a;
+    font: normal normal normal 11px/15px Poppins;
+}
+
+/* Lecture de la news choisie */
+.news-reader {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #1f1f1f;
+    border: solid 1px #3b3b3b;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.news-reader-head {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 20px;
+    background: #292929;
+    border-bottom: solid 1px #3b3b3b;
+}
+
+.news-reader-title {
+    color: #E1E1E1;
+    font: normal normal 600 17px/24px Poppins;
+}
+
+.news-reader-date {
+    color: #8a8a8a;
+    font: normal normal normal 11.5px/16px Poppins;
+}
+
+.news-reader-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 20px;
+    color: #E1E1E1;
+    font: normal normal lighter 13px/21px Poppins;
+    --fade-top: 0px;
+    --fade-bottom: 0px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+
+.news-reader-body.fade-bottom {
+    --fade-bottom: 56px;
+}
+
+.news-reader-body.fade-top {
+    --fade-top: 28px;
+}
+
+.news-reader-body p {
+    margin: 0 0 10px;
+}
+
+/* Titre de la news : centré verticalement, 2 lignes au maximum (« … » au-delà),
+   jamais sous la date. */
+.news-header .header-text {
+    position: absolute;
+    inset: 0 104px 0 22px;
+    display: flex;
+    align-items: center;
+}
+
+.news-header .title {
+    position: static;
+    transform: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    max-width: none;
+    height: auto;
+    overflow: hidden;
+    font-size: 16.5px;
+    line-height: 22px;
+    overflow-wrap: anywhere;
+}
+
+.news-header .title p {
+    display: inline;
+    margin: 0;
+}

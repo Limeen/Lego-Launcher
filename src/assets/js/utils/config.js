@@ -13,8 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const { ipcRenderer } = require('electron');
 
-const PRIMARY_URL = "https://venstone.xyz/launcher-data/stable";
-const FALLBACK_URL = "http://launcher-data.alwaysdata.net/stable";
+const API_URL = "https://venstone.xyz/launcher-data/stable";
 const TIMEOUT = 6000;
 
 // Utilisée si l'API n'a jamais été jointe (premier lancement sans internet).
@@ -31,23 +30,20 @@ let configPromise = null;
 let cacheDirPromise = null;
 
 /**
- * Détermine (une fois par session) quel serveur de l'API répond : principal, secours,
- * ou aucun (mode hors-ligne).
- * @returns {Promise<string|null>}
+ * Vérifie (une fois par session) que l'API Venstone répond ; sinon, mode hors-ligne.
+ * @returns {Promise<string|null>} Adresse de l'API, ou null hors-ligne
  */
 function resolveBaseUrl() {
     if (!basePromise) {
         basePromise = (async () => {
-            for (let base of [PRIMARY_URL, FALLBACK_URL]) {
-                try {
-                    let res = await nodeFetch(`${base}/launcher/config-launcher/config.json`, { method: "HEAD", timeout: TIMEOUT });
-                    if (res.ok) return base;
-                    console.warn(`[Launcher] ${base} → status ${res.status}`);
-                } catch (err) {
-                    console.warn(`[Launcher] ${base} injoignable :`, err.message);
-                }
+            try {
+                let res = await nodeFetch(`${API_URL}/launcher/config-launcher/config.json`, { method: "HEAD", timeout: TIMEOUT });
+                if (res.ok) return API_URL;
+                console.warn(`[Launcher] ${API_URL} → status ${res.status}`);
+            } catch (err) {
+                console.warn(`[Launcher] ${API_URL} injoignable :`, err.message);
             }
-            console.warn("[Launcher] Aucun serveur joignable → mode hors-ligne");
+            console.warn("[Launcher] API injoignable → mode hors-ligne");
             return null;
         })();
     }

@@ -4,6 +4,11 @@ on:
   push:
     branches: [ master ]
 
+# Dans l'organisation VenstoneMC, le jeton GITHUB_TOKEN est en lecture seule par défaut :
+# l'écriture est nécessaire pour créer la release et y envoyer les installateurs.
+permissions:
+  contents: write
+
 jobs:
   create-release:
     runs-on: ubuntu-latest
